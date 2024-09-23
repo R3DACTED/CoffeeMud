@@ -2,6 +2,7 @@ package com.planet_ink.coffee_mud.Abilities.Skills;
 import com.planet_ink.coffee_mud.core.interfaces.*;
 import com.planet_ink.coffee_mud.core.*;
 import com.planet_ink.coffee_mud.core.collections.*;
+import com.planet_ink.coffee_mud.Abilities.Properties.Property;
 import com.planet_ink.coffee_mud.Abilities.interfaces.*;
 import com.planet_ink.coffee_mud.Areas.interfaces.*;
 import com.planet_ink.coffee_mud.Behaviors.interfaces.*;
@@ -100,6 +101,10 @@ public class Skill_RegionalAwareness extends StdSkill
 			return "w";
 		//If Prop_AwareIcon exists
 		//return " " - Basically give nothing to try and keep it from overwriting
+		final Ability mapIcon = room.fetchEffect("Prop_AwareIcon");
+		if(mapIcon!=null){
+			return " ";
+		}
 		switch(room.domainType())
 		{
 		case Room.DOMAIN_OUTDOORS_CITY:
@@ -163,6 +168,10 @@ public class Skill_RegionalAwareness extends StdSkill
 			return "  ";
 		//If Prop_AwareIcon exists
 		//return it's value, overwriting all the other stuff
+		final Ability mapIcon = room.fetchEffect("Prop_AwareIcon");
+		if (mapIcon!=null){
+			return mapIcon.text();
+		}
 		switch(room.domainType())
 		{
 		case Room.DOMAIN_OUTDOORS_CITY:
