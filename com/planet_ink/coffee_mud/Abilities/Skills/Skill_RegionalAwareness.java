@@ -32,6 +32,12 @@ import java.util.*;
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//R3DACTED Edits:
+//Changed roomChar and roomColor to String
+//Altered build map code to String
+//Still left to do:
+//Implement Prop_AwareIcon to override the generic strings if available.
 public class Skill_RegionalAwareness extends StdSkill
 {
 	@Override
@@ -86,136 +92,141 @@ public class Skill_RegionalAwareness extends StdSkill
 		return 0;
 	}
 
-	public char roomColor(final Room room)
+	public String roomColor(final Room room)
 	{
 		if(room==null)
-			return ' ';
+			return " ";
 		if(CMath.bset(room.phyStats().sensesMask(),PhyStats.SENSE_ROOMUNMAPPABLE))
-			return 'w';
+			return "w";
+		//If Prop_AwareIcon exists
+		//return " " - Basically give nothing to try and keep it from overwriting
 		switch(room.domainType())
 		{
 		case Room.DOMAIN_OUTDOORS_CITY:
-			return 'w';
+			return "w";
 		case Room.DOMAIN_OUTDOORS_WOODS:
-			return 'G';
+			return "G";
 		case Room.DOMAIN_OUTDOORS_ROCKS:
-			return 'W';
+			return "W";
 		case Room.DOMAIN_OUTDOORS_PLAINS:
-			return 'Y';
+			return "Y";
 		case Room.DOMAIN_OUTDOORS_UNDERWATER:
-			return 'B';
+			return "B";
 		case Room.DOMAIN_OUTDOORS_AIR:
-			return ' ';
+			return " ";
 		case Room.DOMAIN_OUTDOORS_WATERSURFACE:
-			return 'b';
+			return "b";
 		case Room.DOMAIN_OUTDOORS_JUNGLE:
-			return 'R';
+			return "R";
 		case Room.DOMAIN_OUTDOORS_SEAPORT:
 		case Room.DOMAIN_INDOORS_SEAPORT:
 		case Room.DOMAIN_INDOORS_CAVE_SEAPORT:
-			return 'y';
+			return "y";
 		case Room.DOMAIN_OUTDOORS_SWAMP:
-			return 'r';
+			return "r";
 		case Room.DOMAIN_OUTDOORS_DESERT:
-			return 'y';
+			return "y";
 		case Room.DOMAIN_OUTDOORS_HILLS:
-			return 'g';
+			return "g";
 		case Room.DOMAIN_OUTDOORS_MOUNTAINS:
-			return 'p';
+			return "p";
 		case Room.DOMAIN_OUTDOORS_SPACEPORT:
-			return 'P';
+			return "P";
 		case Room.DOMAIN_INDOORS_STONE:
 			if((room.phyStats().weight()>2)&&(room.maxRange()>4))
-				return '=';
-			return 'w';
+				return "=";
+			return "w";
 		case Room.DOMAIN_INDOORS_WOOD:
-			return 'y';
+			return "y";
 		case Room.DOMAIN_INDOORS_CAVE:
-			return 'w';
+			return "w";
 		case Room.DOMAIN_INDOORS_MAGIC:
-			return 'r';
+			return "r";
 		case Room.DOMAIN_INDOORS_UNDERWATER:
-			return 'B';
+			return "B";
 		case Room.DOMAIN_INDOORS_AIR:
-			return ' ';
+			return " ";
 		case Room.DOMAIN_INDOORS_WATERSURFACE:
-			return 'b';
+			return "b";
 		case Room.DOMAIN_INDOORS_METAL:
-			return 'P';
+			return "P";
 		default:
-			return 'k';
+			return "k";
 		}
 	}
 
-	public char roomChar(final Room room, final boolean amOutdoors)
+	public String roomChar(final Room room, final boolean amOutdoors)
 	{
 		if(room==null)
-			return ' ';
+			return "  ";
 		if(CMath.bset(room.phyStats().sensesMask(),PhyStats.SENSE_ROOMUNMAPPABLE))
-			return ' ';
+			return "  ";
+		//If Prop_AwareIcon exists
+		//return it's value, overwriting all the other stuff
 		switch(room.domainType())
 		{
 		case Room.DOMAIN_OUTDOORS_CITY:
-			return '=';
+			return "==";
 		case Room.DOMAIN_OUTDOORS_WOODS:
-			return 'T';
+			return "TT";
 		case Room.DOMAIN_OUTDOORS_ROCKS:
-			return ':';
+			return ":^";
 		case Room.DOMAIN_OUTDOORS_PLAINS:
-			return '_';
+			return "__";
 		case Room.DOMAIN_OUTDOORS_UNDERWATER:
-			return '~';
+			return "~~";
 		case Room.DOMAIN_OUTDOORS_AIR:
-			return ' ';
+			return "  ";
 		case Room.DOMAIN_OUTDOORS_WATERSURFACE:
-			return '~';
+			return "~~";
 		case Room.DOMAIN_OUTDOORS_JUNGLE:
-			return 'J';
+			return "7T";
 		case Room.DOMAIN_OUTDOORS_SEAPORT:
 		case Room.DOMAIN_INDOORS_SEAPORT:
 		case Room.DOMAIN_INDOORS_CAVE_SEAPORT:
-			return 'P';
+			return "SP";
 		case Room.DOMAIN_OUTDOORS_SWAMP:
-			return 'x';
+			return "xx";
 		case Room.DOMAIN_OUTDOORS_DESERT:
-			return '.';
+			return "..";
 		case Room.DOMAIN_OUTDOORS_HILLS:
-			return 'h';
+			return "mm";
 		case Room.DOMAIN_OUTDOORS_MOUNTAINS:
-			return 'M';
+			return "MM";
 		case Room.DOMAIN_OUTDOORS_SPACEPORT:
-			return '@';
+			return "@@";
 		case Room.DOMAIN_INDOORS_UNDERWATER:
 			if((room.basePhyStats().weight()>2)&&(room.maxRange()>4))
-				return '=';
-			return '~';
+				return "==";
+			return "~~";
 		case Room.DOMAIN_INDOORS_AIR:
-			return ' ';
+			return "  ";
 		case Room.DOMAIN_INDOORS_WATERSURFACE:
-			return '~';
+			return "~~";
 		case Room.DOMAIN_INDOORS_STONE:
 			if((room.basePhyStats().weight()>2)&&(room.maxRange()>4))
-				return '=';
+				return "==";
 			//$FALL-THROUGH$
 		case Room.DOMAIN_INDOORS_WOOD:
 		case Room.DOMAIN_INDOORS_CAVE:
 		case Room.DOMAIN_INDOORS_MAGIC:
 		case Room.DOMAIN_INDOORS_METAL:
-			return '#';
+			return "##";
 		default:
-			return '?';
+			return "??";
 		}
 	}
 
 	public String[] getMiniMap(final MOB mob, final Room room, final int diameter, final boolean openOnly)
 	{
-		final char[][] map=new char[diameter][diameter];
+		final String[][] map=new String[diameter][diameter];
 		for(int i=0;i<diameter;i++)
 		{
 			for(int i2=0;i2<diameter;i2++)
-				map[i][i2]=' ';
+				map[i][i2]="  ";
 		}
-		final boolean amIndoors=((room.domainType()&Room.INDOORS)==Room.INDOORS);
+		//final boolean amIndoors=((room.domainType()&Room.INDOORS)==Room.INDOORS);
+		final boolean amIndoors=false;
 		final Room[][] rmap=new Room[diameter][diameter];
 		final ArrayList<Room> rooms=new ArrayList<Room>();
 		final HashSet<Room> closedPaths=new HashSet<Room>();
@@ -229,7 +240,7 @@ public class Skill_RegionalAwareness extends StdSkill
 		final boolean canSeeHidden = CMSecurity.isAllowed(mob, mob.location(), CMSecurity.SecFlag.CMDROOMS);
 		CMLib.tracking().getRadiantRooms(room,rooms,flags,null,diameter,null);
 		rmap[diameter/2][diameter/2]=room;
-		map[diameter/2][diameter/2]='*';
+		map[diameter/2][diameter/2]="()";
 		for(int i=0;i<rooms.size();i++)
 		{
 			final Room R=rooms.get(i);
@@ -270,22 +281,22 @@ public class Skill_RegionalAwareness extends StdSkill
 			{
 				if((parentDir<0)
 				||(xy[0]<0)||(xy[0]>=diameter)||(xy[1]<0)||(xy[1]>=diameter)
-				||(map[xy[1]][xy[0]]!=' '))
+				||(map[xy[1]][xy[0]]!="  "))
 					closedPaths.add(R);
 				else
 				{
 					map[xy[1]][xy[0]]=roomChar(R,!amIndoors);
 					rmap[xy[1]][xy[0]]=R;
 
-					if((R.domainType()&Room.INDOORS)==Room.INDOORS)
-						closedPaths.add(R);
+					//if((R.domainType()&Room.INDOORS)==Room.INDOORS)
+					//	closedPaths.add(R);
 				}
 			}
 		}
 		final String[] miniMap=new String[diameter];
 		final StringBuffer str=new StringBuffer("");
-		char r=' ';
-		char c=' ';
+		String r=" ";
+		String c=" ";
 		for(int i2=0;i2<diameter;i2++)
 		{
 			str.setLength(0);
@@ -293,7 +304,7 @@ public class Skill_RegionalAwareness extends StdSkill
 			{
 				r=map[i2][i3];
 				c=roomColor(rmap[i2][i3]);
-				if(c!=' ')
+				if(c!=" ")
 					str.append("^"+c+""+r);
 				else
 					str.append(r);
