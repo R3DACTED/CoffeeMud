@@ -38,7 +38,7 @@ public class Prop_AwareIcon extends Property {
     @Override
     protected int canAffectCode()
     {
-        return Ability.CAN_ROOMS;
+        return Ability.CAN_ROOMS|Ability.CAN_AREAS;
     }
 
 }
