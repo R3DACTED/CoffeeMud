@@ -207,8 +207,12 @@ public class CraftingSkill extends GatheringSkill implements RecipeDriven
 				recipePath = filename;
 			else
 				recipePath = Resources.buildResourcePath("skills")+filename;
-			final StringBuffer str=new CMFile(recipePath,null,CMFile.FLAG_LOGERRORS).text();
-			V=loadList(str);
+			V = new Vector<List<String>>();
+			for(final CMFile F : CMFile.getExistingExtendedFiles(recipePath,null,CMFile.FLAG_LOGERRORS))
+			{
+				final StringBuffer str = F.text();
+				V.addAll(loadList(str));
+			}
 			Collections.sort(V,new Comparator<List<String>>()
 			{
 				@Override
@@ -1469,34 +1473,55 @@ public class CraftingSkill extends GatheringSkill implements RecipeDriven
 				}
 			}
 		}
-		if(supportsWeapons()
-		&& (matches.size()==0)
-		&&(recipeName.length()>2)
-		&&(recipeName.toUpperCase().endsWith("S")))
+		if((matches.size()==0)
+		&&(!beLoose))
 		{
-			recipeName=recipeName.substring(0,recipeName.length()-1);
-			int x=CMParms.indexOf(Weapon.CLASS_DESCS,recipeName.toUpperCase().trim());
-			if(x>=0)
+			// names are higher priority on non-loose matchings
+			for(int r=0;r<recipes.size();r++)
 			{
-				final String weaponClass = Weapon.CLASS_DESCS[x];
-				for(int r=0;r<recipes.size();r++)
+				final List<String> V=recipes.get(r);
+				if(V.size()>0)
 				{
-					final List<String> V=recipes.get(r);
-					if((V.contains(weaponClass))
-					&&(!matches.contains(V)))
+					final String item=V.get(RCP_FINALNAME);
+					if(replacePercent(item,"").equalsIgnoreCase(recipeName))
 						matches.add(V);
 				}
 			}
-			x=CMParms.indexOf(Weapon.TYPE_DESCS,recipeName.toUpperCase().trim());
-			if(x>=0)
+		}
+		if(supportsWeapons()
+		&& (matches.size()==0)
+		&&(recipeName.length()>2))
+		{
+			final String[] checks;
+			if(recipeName.toUpperCase().endsWith("S"))
+				checks = new String[] {recipeName.toUpperCase(), recipeName.substring(0,recipeName.length()-1).toUpperCase()};
+			else
+				checks = new String[] {recipeName.toUpperCase()};
+			for(final String chk : checks)
 			{
-				final String weaponType = Weapon.TYPE_DESCS[x];
-				for(int r=0;r<recipes.size();r++)
+				int x=CMParms.indexOf(Weapon.CLASS_DESCS,chk.trim());
+				if(x>=0)
 				{
-					final List<String> V=recipes.get(r);
-					if((V.contains(weaponType))
-					&&(!matches.contains(V)))
-						matches.add(V);
+					final String weaponClass = Weapon.CLASS_DESCS[x];
+					for(int r=0;r<recipes.size();r++)
+					{
+						final List<String> V=recipes.get(r);
+						if((V.contains(weaponClass))
+						&&(!matches.contains(V)))
+							matches.add(V);
+					}
+				}
+				x=CMParms.indexOf(Weapon.TYPE_DESCS,chk.trim());
+				if(x>=0)
+				{
+					final String weaponType = Weapon.TYPE_DESCS[x];
+					for(int r=0;r<recipes.size();r++)
+					{
+						final List<String> V=recipes.get(r);
+						if((V.contains(weaponType))
+						&&(!matches.contains(V)))
+							matches.add(V);
+					}
 				}
 			}
 		}
@@ -1531,20 +1556,6 @@ public class CraftingSkill extends GatheringSkill implements RecipeDriven
 				}
 			}
 		}
-		if(matches.size()==0)
-		{
-			for(int r=0;r<recipes.size();r++)
-			{
-				final List<String> V=recipes.get(r);
-				if(V.size()>0)
-				{
-					final String item=V.get(RCP_FINALNAME);
-					if(replacePercent(item,"").equalsIgnoreCase(recipeName))
-						matches.add(V);
-				}
-			}
-		}
-
 		if(supportsArmors() && (matches.size()==0))
 		{
 			long code=Wearable.CODES.FIND_ignoreCase(recipeName.toUpperCase().trim());
@@ -1574,6 +1585,20 @@ public class CraftingSkill extends GatheringSkill implements RecipeDriven
 
 		if(!beLoose)
 			return matches;
+
+		if(matches.size()==0)
+		{
+			for(int r=0;r<recipes.size();r++)
+			{
+				final List<String> V=recipes.get(r);
+				if(V.size()>0)
+				{
+					final String item=V.get(RCP_FINALNAME);
+					if(replacePercent(item,"").equalsIgnoreCase(recipeName))
+						matches.add(V);
+				}
+			}
+		}
 
 		if(matches.size()==0)
 		{

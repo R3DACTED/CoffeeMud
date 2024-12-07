@@ -1159,9 +1159,15 @@ public class CMGenEditor extends StdLibrary implements GenericEditor
 			report.append("8. Months: "+CMParms.toListString(TC.getMonthNames())+"\n\r");
 			report.append("9. Year Title(s): "+CMParms.toListString(TC.getYearNames()));
 			mob.tell(report.toString());
-			newName=mob.session().prompt(L("Enter one to change:"),"");
+			newName=mob.session().prompt(L("Enter one to change (or global):"),"");
 			if(newName.length()==0)
 				break;
+			if(newName.equalsIgnoreCase("global"))
+			{
+				A.setTimeObj((TimeClock)CMLib.time().globalClock().copyOf());
+				continue;
+			}
+
 			final int which=CMath.s_int(newName);
 
 			if((which<0)||(which>9))
@@ -1600,7 +1606,7 @@ public class CMGenEditor extends StdLibrary implements GenericEditor
 	{
 		if(A==null)
 			return;
-		A.setStat("BIRTHDAY",prompt(mob,A.getStat("BIRTHDAY"),showNumber,showFlag,"Birthday (m,d,y)",true,false,null));
+		A.setStat("BIRTHDAY",prompt(mob,A.getStat("BIRTHDAY"),showNumber,showFlag,"Birthday (d,m,y)",true,false,null));
 	}
 
 	@Override
@@ -10265,6 +10271,8 @@ public class CMGenEditor extends StdLibrary implements GenericEditor
 			genImage(mob,me,++showNumber,showFlag);
 			for(int x=me.getSaveStatIndex();x<me.getStatCodes().length;x++)
 				me.setStat(me.getStatCodes()[x],prompt(mob,me.getStat(me.getStatCodes()[x]),++showNumber,showFlag,CMStrings.capitalizeAndLower(me.getStatCodes()[x])));
+			if(me.numScripts()>0)
+				genScripts(mob,me,++showNumber,showFlag);
 
 			if (showFlag < -900)
 			{
@@ -10328,6 +10336,8 @@ public class CMGenEditor extends StdLibrary implements GenericEditor
 			genImage(mob,me,++showNumber,showFlag);
 			for(int x=me.getSaveStatIndex();x<me.getStatCodes().length;x++)
 				me.setStat(me.getStatCodes()[x],prompt(mob,me.getStat(me.getStatCodes()[x]),++showNumber,showFlag,CMStrings.capitalizeAndLower(me.getStatCodes()[x])));
+			if(me.numScripts()>0)
+				genScripts(mob,me,++showNumber,showFlag);
 
 			if (showFlag < -900)
 			{
@@ -10354,7 +10364,7 @@ public class CMGenEditor extends StdLibrary implements GenericEditor
 		}
 	}
 
-	protected void genScripts(final MOB mob, final MOB E, final int showNumber, final int showFlag)
+	protected void genScripts(final MOB mob, final PhysicalAgent E, final int showNumber, final int showFlag)
 	throws IOException
 	{
 		if((showFlag>0)&&(showFlag!=showNumber))
@@ -10452,6 +10462,8 @@ public class CMGenEditor extends StdLibrary implements GenericEditor
 			genImage(mob,me,++showNumber,showFlag);
 			for(int x=me.getSaveStatIndex();x<me.getStatCodes().length;x++)
 				me.setStat(me.getStatCodes()[x],prompt(mob,me.getStat(me.getStatCodes()[x]),++showNumber,showFlag,CMStrings.capitalizeAndLower(me.getStatCodes()[x])));
+			if((me instanceof PhysicalAgent) && (((PhysicalAgent)me).numScripts()>0))
+				genScripts(mob,(PhysicalAgent)me,++showNumber,showFlag);
 
 			if (showFlag < -900)
 			{
@@ -10557,6 +10569,8 @@ public class CMGenEditor extends StdLibrary implements GenericEditor
 			genImage(mob,me,++showNumber,showFlag);
 			for(int x=me.getSaveStatIndex();x<me.getStatCodes().length;x++)
 				me.setStat(me.getStatCodes()[x],prompt(mob,me.getStat(me.getStatCodes()[x]),++showNumber,showFlag,CMStrings.capitalizeAndLower(me.getStatCodes()[x])));
+			if(me.numScripts()>0)
+				genScripts(mob,me,++showNumber,showFlag);
 
 			if (showFlag < -900)
 			{
@@ -10691,6 +10705,8 @@ public class CMGenEditor extends StdLibrary implements GenericEditor
 			genImage(mob,me,++showNumber,showFlag);
 			for(int x=me.getSaveStatIndex();x<me.getStatCodes().length;x++)
 				me.setStat(me.getStatCodes()[x],prompt(mob,me.getStat(me.getStatCodes()[x]),++showNumber,showFlag,CMStrings.capitalizeAndLower(me.getStatCodes()[x])));
+			if(me.numScripts()>0)
+				genScripts(mob,me,++showNumber,showFlag);
 
 			if (showFlag < -900)
 			{
@@ -10800,6 +10816,8 @@ public class CMGenEditor extends StdLibrary implements GenericEditor
 			genImage(mob,me,++showNumber,showFlag);
 			for(int x=me.getSaveStatIndex();x<me.getStatCodes().length;x++)
 				me.setStat(me.getStatCodes()[x],prompt(mob,me.getStat(me.getStatCodes()[x]),++showNumber,showFlag,CMStrings.capitalizeAndLower(me.getStatCodes()[x])));
+			if(me.numScripts()>0)
+				genScripts(mob,me,++showNumber,showFlag);
 
 			if (showFlag < -900)
 			{
@@ -10884,6 +10902,8 @@ public class CMGenEditor extends StdLibrary implements GenericEditor
 			genImage(mob,me,++showNumber,showFlag);
 			for(int x=me.getSaveStatIndex();x<me.getStatCodes().length;x++)
 				me.setStat(me.getStatCodes()[x],prompt(mob,me.getStat(me.getStatCodes()[x]),++showNumber,showFlag,CMStrings.capitalizeAndLower(me.getStatCodes()[x])));
+			if(me.numScripts()>0)
+				genScripts(mob,me,++showNumber,showFlag);
 
 			if (showFlag < -900)
 			{
@@ -10948,6 +10968,8 @@ public class CMGenEditor extends StdLibrary implements GenericEditor
 			genImage(mob,me,++showNumber,showFlag);
 			for(int x=me.getSaveStatIndex();x<me.getStatCodes().length;x++)
 				me.setStat(me.getStatCodes()[x],prompt(mob,me.getStat(me.getStatCodes()[x]),++showNumber,showFlag,CMStrings.capitalizeAndLower(me.getStatCodes()[x])));
+			if(me.numScripts()>0)
+				genScripts(mob,me,++showNumber,showFlag);
 
 			if (showFlag < -900)
 			{
@@ -11007,6 +11029,8 @@ public class CMGenEditor extends StdLibrary implements GenericEditor
 			genImage(mob,me,++showNumber,showFlag);
 			for(int x=me.getSaveStatIndex();x<me.getStatCodes().length;x++)
 				me.setStat(me.getStatCodes()[x],prompt(mob,me.getStat(me.getStatCodes()[x]),++showNumber,showFlag,CMStrings.capitalizeAndLower(me.getStatCodes()[x])));
+			if(me.numScripts()>0)
+				genScripts(mob,me,++showNumber,showFlag);
 
 			if (showFlag < -900)
 			{
@@ -11710,6 +11734,14 @@ public class CMGenEditor extends StdLibrary implements GenericEditor
 				((Auctioneer)me).setTimedFinalCutPct(genAuctionPrompt(mob,((Auctioneer)me).timedFinalCutPct(),++showNumber,showFlag,"Cut/%Pct of final price",true));
 				((Auctioneer)me).setMaxTimedAuctionDays(genAuctionPrompt(mob,((Auctioneer)me).maxTimedAuctionDays(),++showNumber,showFlag,"Maximum number of auction mud-days"));
 				((Auctioneer)me).setMinTimedAuctionDays(genAuctionPrompt(mob,((Auctioneer)me).minTimedAuctionDays(),++showNumber,showFlag,"Minimum number of auction mud-days"));
+			}
+			else
+			if(me instanceof CraftBroker)
+			{
+				((CraftBroker)me).setBrokerChain(prompt(mob,((CraftBroker)me).brokerChain(),++showNumber,showFlag,"Broker Chain"));
+				((CraftBroker)me).setMaxTimedListingDays(genAuctionPrompt(mob,((CraftBroker)me).maxTimedListingDays(),++showNumber,showFlag,"Maximum number of listing mud-days"));
+				((CraftBroker)me).setMaxListings(genAuctionPrompt(mob,((CraftBroker)me).maxListings(),++showNumber,showFlag,"Maximum number of listings"));
+				((CraftBroker)me).setCommissionPct(genAuctionPrompt(mob,((CraftBroker)me).commissionPct(),++showNumber,showFlag,"Commission Pct%",true));
 			}
 			else
 			{

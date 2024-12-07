@@ -1,6 +1,7 @@
 package com.planet_ink.coffee_mud.Abilities.Thief;
 import com.planet_ink.coffee_mud.core.interfaces.*;
 import com.planet_ink.coffee_mud.core.*;
+import com.planet_ink.coffee_mud.core.CMSecurity.DbgFlag;
 import com.planet_ink.coffee_mud.core.collections.*;
 import com.planet_ink.coffee_mud.core.exceptions.CMException;
 import com.planet_ink.coffee_mud.Abilities.interfaces.*;
@@ -359,10 +360,9 @@ public class Thief_Runecasting extends ThiefSkill
 			case 1:
 				break;
 			case 2:
-				predictionClock.bumpMonths(CMLib.dice().roll(1, 10, 3));
+				predictionClock.bumpWeeks(CMLib.dice().roll(1, 10, 5));
 				break;
 			case 3:
-				predictionClock.bumpYears(CMLib.dice().roll(1, 10, 3));
 				predictionClock.bumpMonths(CMLib.dice().roll(1, 10, 3));
 				break;
 			}
@@ -420,29 +420,49 @@ public class Thief_Runecasting extends ThiefSkill
 			if(tickUp >= 2)
 			{
 				final int numToReturn = 1 + getXTIMELevel(iM);
-				final AutoProperties[] APs = Thief_Runecasting.getApplicableAward(forM, getPlayerFilter(), numToReturn);
+				final AutoProperties[] APs = Thief_Runecasting.getApplicableAward(this, forM, getPlayerFilter(), numToReturn);
 				if((APs == null) || (APs.length==0))
 				{
-					final int x =CMLib.dice().roll(1, getFailPhrases().length, 0);
+					final int x =CMLib.dice().roll(1, getFailPhrases().length, -1);
 					CMLib.commands().postSay(iM, forM, L(getFailPhrases()[x]));
 					unInvoke();
 					return false;
 				}
 				else
 				{
+					final String format = "I see @x1 @x2. @x3 @x4 @x5";
 					final TimeClock nowC = CMLib.time().homeClock(forM);
 					this.reports = new XVector<String>();
 					for(final AutoProperties P : APs)
 					{
 						final TimeClock C = CMLib.masking().dateMaskToNextTimeClock(forM, P.getDateCMask());
-						final boolean isNow = CMLib.masking().maskCheck(P.getDateCMask(), forM, true);
+						if(CMSecurity.isDebugging(DbgFlag.AUTOAWARDS)
+						&&(P.getProps()!=null)
+						&&(P.getProps().length>0))
+						{
+							final String tpcs = C.toTimePeriodCodeString();
+							final int tpcsx = tpcs.indexOf(' ');
+							Log.debugOut(ID(),"Rept: "
+											+ CMStrings.padRight(forM.name(),8)
+											+ ": " + CMStrings.padRight(P.getPlayerMask(),17)
+											+ ": " + CMStrings.padRight(P.getProps()[0].second,17)
+											+ ": " + CMStrings.padRight(P.getDateMask(),32)
+											+ ": " + ((tpcsx>0)?tpcs.substring(0,tpcsx):tpcs));
+						}
+						final boolean isNow = CMLib.masking().maskCheckDateEntries(P.getDateCMask(), nowC);
 						final TimeClock expireC = isNow ? CMLib.masking().dateMaskToExpirationTimeClock(forM, P.getDateCMask()) : null;
+						if(C.isBefore(nowC) && (!isNow))
+							continue;
 						for(final Pair<String, String> ps : P.getProps())
 						{
 							final Ability A = CMClass.getAbility(ps.first);
+							final int oldsz=reports.size();
 							if(A != null)
 							{
 								final MOB M = CMClass.getFactoryMOB();
+								M.setBaseCharStats((CharStats)forM.charStats().copyOf());
+								M.setBasePhyStats((PhyStats)forM.phyStats().copyOf());
+								M.setBaseState((CharState)forM.maxState().copyOf());
 								M.recoverCharStats();
 								M.recoverMaxState();
 								M.recoverPhyStats();
@@ -454,7 +474,6 @@ public class Thief_Runecasting extends ThiefSkill
 								A.affectCharState(M, M.curState());
 								A.affectCharStats(M, M.charStats());
 								A.affectPhyStats(M, M.phyStats());
-								final String format = "I see @x1 @x2. @x3 @x4 @x5";
 								for(final int cd : CharStats.CODES.ALLCODES())
 								{
 									final int diff = M.charStats().getStat(cd) - cStats.getStat(cd);
@@ -532,11 +551,21 @@ public class Thief_Runecasting extends ThiefSkill
 									}
 								}
 							}
+							if((oldsz==reports.size()) && (A != null))
+							{
+								String codeName;
+								if(A.accountForYourself().length()>0)
+									codeName = A.accountForYourself().toLowerCase();
+								else
+									codeName = A.name();
+								final String report = L("I see @x1 @x2.",codeName,getFTTime(C,nowC,expireC) );
+								reports.add(report);
+							}
 						}
 					}
 					if(reports.size()==0)
 					{
-						final int x =CMLib.dice().roll(1, getFailPhrases().length, 0);
+						final int x =CMLib.dice().roll(1, getFailPhrases().length, -1);
 						CMLib.commands().postSay(iM, forM, L(getFailPhrases()[x]));
 						unInvoke();
 						return false;
@@ -547,7 +576,7 @@ public class Thief_Runecasting extends ThiefSkill
 						if((finalPrediction != null)&&(finalPrediction.trim().length()>0))
 							this.reports.add(finalPrediction);
 					}
-					final int x =CMLib.dice().roll(1, getStartPhrases().length, 0);
+					final int x =CMLib.dice().roll(1, getStartPhrases().length, -1);
 					CMLib.commands().postSay(iM, forM, L(getStartPhrases()[x]));
 				}
 			}
@@ -572,24 +601,27 @@ public class Thief_Runecasting extends ThiefSkill
 			unInvoke();
 	}
 
-	protected static AutoProperties[] getApplicableAward(final MOB mob, final Filterer<AutoProperties> playerFilter,
-														 final int num)
+	protected static AutoProperties[] getApplicableAward(final Thief_Runecasting meA,
+														 final MOB mob,
+														 final Filterer<AutoProperties> playerFilter,
+														 int num)
 	{
 		final Map<CompiledZMask,Boolean> playerTried = new HashMap<CompiledZMask,Boolean>();
 		final Map<AutoProperties, TimeClock> clocks = new HashMap<AutoProperties, TimeClock>();
-		final Set<AutoProperties> awards = new TreeSet<AutoProperties>(new Comparator<AutoProperties>() {
-			@Override
-			public int compare(final AutoProperties o1, final AutoProperties o2)
+		final List<AutoProperties> awards = new ArrayList<AutoProperties>();
+
+		final Set<Integer> currentSet = new TreeSet<Integer>();
+		{
+			final Ability A = mob.fetchEffect("AutoAwards");
+			if(A != null)
 			{
-				final TimeClock c1 = clocks.get(o1);
-				final TimeClock c2 = clocks.get(o2);
-				if(c1.isEqual(c2))
-					return 0;
-				if(c1.isBefore(c2))
-					return -1;
-				return 1;
+				final String list = A.getStat("AUTOAWARDS");
+				for(final String s : list.split(";"))
+					currentSet.add(Integer.valueOf(CMath.s_int(s)));
 			}
-		});
+		}
+		if(CMSecurity.isDebugging(DbgFlag.AUTOAWARDS))
+			Log.debugOut(meA.ID(),"HCLK: --- "+CMLib.time().homeClock(mob).toTimePeriodCodeString());
 		for(final Enumeration<AutoProperties> p = CMLib.awards().getAutoProperties();p.hasMoreElements();)
 		{
 			final AutoProperties P = p.nextElement();
@@ -612,26 +644,60 @@ public class Thief_Runecasting extends ThiefSkill
 				&& (playerFilter.passesFilter(P)))
 				{
 					final TimeClock C = CMLib.masking().dateMaskToNextTimeClock(mob, P.getDateCMask());
-					if(C == null)
-						continue;
-					clocks.put(P, C);
-					awards.add(P);
+					if(C != null)
+					{
+						if(CMSecurity.isDebugging(DbgFlag.AUTOAWARDS)
+						&&(P.getProps()!=null)
+						&&(P.getProps().length>0))
+						{
+							final String tpcs = C.toTimePeriodCodeString();
+							final int tpcsx = tpcs.indexOf(' ');
+							Log.debugOut(meA.ID(),"Pass: "
+											+ CMStrings.padRight(mob.name(),8)
+											+ ": " + CMStrings.padRight(P.getPlayerMask(),17)
+											+ ": " + CMStrings.padRight(P.getProps()[0].second,17)
+											+ ": " + CMStrings.padRight(P.getDateMask(),32)
+											+ ": " + ((tpcsx>0)?tpcs.substring(0,tpcsx):tpcs));
+						}
+						clocks.put(P, C); // must always be before the add
+						if(!awards.contains(P))
+						{
+							if(currentSet.contains(Integer.valueOf(P.hashCode()))
+							&&(awards.size()>0))
+								awards.add(0,P);
+							else
+								awards.add(P);
+						}
+					}
 				}
 			}
 		}
+		awards.sort(new Comparator<AutoProperties>() {
+			@Override
+			public int compare(final AutoProperties o1, final AutoProperties o2)
+			{
+				final TimeClock c1 = clocks.get(o1);
+				final TimeClock c2 = clocks.get(o2);
+				if(c1.isEqual(c2))
+					return 0;
+				if(c1.isBefore(c2))
+					return -1;
+				return 1;
+			}
+		});
+		if(num<currentSet.size())
+			num=currentSet.size();
 		int ct = 0;
 		final List<AutoProperties> winner = new ArrayList<AutoProperties>();
 		for(final Iterator<AutoProperties> pi = awards.iterator(); pi.hasNext();)
 		{
 			final AutoProperties P = pi.next();
 			if(ct<num)
-			{
 				winner.add(P);
-				ct++;
-			}
 			else
-			if(CMLib.dice().rollPercentage()<20)
-				winner.set(CMLib.dice().roll(1, winner.size(), -1), P);
+			if((CMLib.dice().rollPercentage()<20)&&(num>3)&&(ct<num*2))
+				winner.set(CMLib.dice().roll(1, winner.size()-3, 2), P);
+			ct++;
 		}
 		if(winner.size()==0)
 			return null;

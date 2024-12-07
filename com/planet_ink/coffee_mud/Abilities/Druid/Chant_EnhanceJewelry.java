@@ -106,7 +106,7 @@ public class Chant_EnhanceJewelry extends Chant
 			return false;
 		}
 
-		if(target.phyStats().ability()>5+(super.getXLEVELLevel(mob)/2))
+		if(target.phyStats().ability()>=5+(super.getXLEVELLevel(mob)/2))
 		{
 			mob.tell(L("@x1 cannot be enhanced further.",target.name(mob)));
 			return false;
@@ -130,6 +130,9 @@ public class Chant_EnhanceJewelry extends Chant
 				mob.location().send(mob,msg);
 				mob.location().show(mob,target,CMMsg.MSG_OK_VISUAL,L("<T-NAME> glows!"));
 				target.basePhyStats().setAbility(target.basePhyStats().ability()+1);
+				if(target instanceof Armor)
+					((Armor)target).setLayerAttributes((short)(((Armor)target).getLayerAttributes()&(~Armor.LAYERMASK_MULTIWEAR)));
+
 				target.basePhyStats().setLevel(target.basePhyStats().level()+3);
 				target.basePhyStats().setDisposition(target.basePhyStats().disposition()|PhyStats.IS_BONUS);
 				target.recoverPhyStats();

@@ -49,10 +49,13 @@ public class Chant_StealFortune extends Chant
 	}
 
 	private final static String localizedStaticDisplay = CMLib.lang().L("(Steal Fortune)");
+	private final static String localizedStaticDisplay2 = CMLib.lang().L("(Fortune Stolen)");
 
 	@Override
 	public String displayText()
 	{
+		if((affected != invoker)&&(invoker != null)&&(affected!=null))
+			return localizedStaticDisplay2;
 		return localizedStaticDisplay;
 	}
 
@@ -122,6 +125,18 @@ public class Chant_StealFortune extends Chant
 			mob.tell(L("You've already stolen someone's fortune."));
 			return false;
 		}
+		if(mob==target)
+		{
+			mob.tell(L("You can't steal your own forune."));
+			return false;
+		}
+		if((!auto)
+		&&(!mob.getGroupMembers(new XTreeSet<MOB>()).contains(target))
+		&&(!mob.mayIFight(target)))
+		{
+			mob.tell(mob,target,null,L("<T-HE-SHE> <T-IS-ARE> not a valid target."));
+			return false;
+		}
 
 		if(!super.invoke(mob,commands,givenTarget,auto,asLevel))
 			return false;
@@ -137,10 +152,11 @@ public class Chant_StealFortune extends Chant
 				if(msg.value()<=0)
 				{
 					mob.location().show(target,null,CMMsg.MSG_OK_VISUAL,L("<S-NAME> feel(s) <S-HIS-HER> fortune being stolen."));
-					final Ability tmeA = beneficialAffect(mob,target,asLevel,0);
+					final Chant_StealFortune tmeA = (Chant_StealFortune)beneficialAffect(mob,target,asLevel,0);
 					if(tmeA != null)
 					{
-						final Ability smeA = beneficialAffect(mob,mob,asLevel,0);
+						final Chant_StealFortune smeA = (Chant_StealFortune)beneficialAffect(mob,mob,asLevel,0);
+						smeA.tickDown = tmeA.tickDown;
 						if(!mob.isPlayer())
 							CMLib.awards().giveAutoProperties(mob, false);
 						if(!target.isPlayer())
@@ -149,10 +165,12 @@ public class Chant_StealFortune extends Chant
 						final Ability tA = target.fetchEffect("AutoAwards");
 						if(tA != null)
 						{
+							final String oldAwards = tA.getStat("AUTOAWARDS");
 							tA.setStat("SUPPRESSOR", tmeA.ID());
-							if((sA != null)&&(smeA!=null))
+							if((sA != null)
+							&&(smeA!=null))
 							{
-								sA.setStat("AUTOAWARDS", tA.getStat("AUTOAWARDS"));
+								sA.setStat("AUTOAWARDS", oldAwards);
 								sA.setStat("HOLDER", smeA.ID());
 							}
 							mob.recoverPhyStats();
@@ -167,7 +185,10 @@ public class Chant_StealFortune extends Chant
 			}
 		}
 		else
+		if((mob!=target)&&(!mob.getGroupMembers(new XTreeSet<MOB>()).contains(target))&&(mob.mayIFight(target)))
 			return maliciousFizzle(mob,target,L("<S-NAME> chant(s) to <T-NAMESELF>, but the magic fades."));
+		else
+			return beneficialWordsFizzle(mob,target,L("<S-NAME> chant(s) to <T-NAMESELF>, but the magic fades."));
 		// return whether it worked
 		return success;
 	}

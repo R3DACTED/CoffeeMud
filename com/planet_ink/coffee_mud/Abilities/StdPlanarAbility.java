@@ -355,17 +355,10 @@ public class StdPlanarAbility extends StdAbility implements PlanarAbility
 				return "ERROR: Unknown planar var: "+key;
 		}
 		planeParms.put(PlanarVar.ID.toString(), planeName);
+		final CMFile[] fileList = CMFile.getExistingExtendedFiles(Resources.makeFileResourceName("skills/planesofexistence.txt"), null, CMFile.FLAG_FORCEALLOW);
 		if(!map.containsKey(planeName.trim().toUpperCase()))
 		{
-			String previ="";
-			for(String i="";!i.equals(".9");i=("."+(Math.round(CMath.s_double(i)*10)+1)))
-			{
-				final CMFile F=new CMFile(Resources.makeFileResourceName("skills/planesofexistence.txt"+i), null);
-				if(!F.exists())
-					break;
-				previ=i;
-			}
-			final CMFile F=new CMFile(Resources.makeFileResourceName("skills/planesofexistence.txt"+previ), null);
+			final CMFile F=fileList[fileList.length-1]; // last one is always correct!
 			final StringBuffer old=F.text();
 			if((!old.toString().endsWith("\n"))
 			&&(!old.toString().endsWith("\r")))
@@ -401,9 +394,9 @@ public class StdPlanarAbility extends StdAbility implements PlanarAbility
 			}
 			if(changes.length()==0)
 				return "";
-			for(String i="";!i.equals(".9");i=("."+(Math.round(CMath.s_double(i)*10)+1)))
+			for(final CMFile F : fileList)
 			{
-				if(alterPlaneLine(planeName, Resources.makeFileResourceName("skills/planesofexistence.txt"+i), rule))
+				if(alterPlaneLine(planeName, F.getAbsolutePath(), rule))
 				{
 					map.put(planeName.toUpperCase().trim(), planeParms);
 					return changes.toString();
@@ -454,9 +447,9 @@ public class StdPlanarAbility extends StdAbility implements PlanarAbility
 		final Map<String,Map<String,String>> map = getAllPlanesMap();
 		if(!map.containsKey(planeName.trim().toUpperCase()))
 			return false;
-		for(String i="";!i.equals(".9");i=("."+(Math.round(CMath.s_double(i)*10)+1)))
+		for(final CMFile F : CMFile.getExistingExtendedFiles(Resources.makeFileResourceName("skills/planesofexistence.txt"), null, CMFile.FLAG_FORCEALLOW))
 		{
-			if(alterPlaneLine(planeName, Resources.makeFileResourceName("skills/planesofexistence.txt"+i), null))
+			if(alterPlaneLine(planeName, F.getAbsolutePath(), null))
 			{
 				map.remove(planeName.trim().toUpperCase());
 				return true;
@@ -698,7 +691,8 @@ public class StdPlanarAbility extends StdAbility implements PlanarAbility
 			final String absorb = planeVars.get(PlanarVar.ABSORB.toString());
 			if(absorb != null)
 				reEffect(planeArea,"Prop_AbsorbDamage",absorb);
-			final TimeClock C=(TimeClock)CMLib.time().globalClock().copyOf();
+			final TimeClock myC = CMLib.time().homeClock(affected);
+			final TimeClock C=(TimeClock)myC.copyOf();
 			C.setDayOfMonth(1);
 			C.setYear(1);
 			C.setMonth(1);
@@ -706,7 +700,7 @@ public class StdPlanarAbility extends StdAbility implements PlanarAbility
 			final String hours = planeVars.get(PlanarVar.HOURS.toString());
 			if((hours != null)&&(CMath.isInteger(hours)))
 			{
-				final double mul=CMath.div(CMath.s_int(hours),CMLib.time().globalClock().getHoursInDay());
+				final double mul=CMath.div(CMath.s_int(hours),myC.getHoursInDay());
 				if(mul != 1.0)
 				{
 					final int newHours = (int)Math.round(CMath.mul(C.getHoursInDay(),mul));
@@ -1568,14 +1562,10 @@ public class StdPlanarAbility extends StdAbility implements PlanarAbility
 		if(map == null)
 		{
 			map = new TreeMap<String,Map<String,String>>();
+			final CMFile[] fileList = CMFile.getExistingExtendedFiles(Resources.makeFileResourceName("skills/planesofexistence.txt"), null, CMFile.FLAG_FORCEALLOW);
 			final List<String> lines = new ArrayList<String>();
-			for(String i="";!i.equals(".9");i=("."+(Math.round(CMath.s_double(i)*10)+1)))
-			{
-				final CMFile F=new CMFile(Resources.makeFileResourceName("skills/planesofexistence.txt"+i), null);
-				if(!F.exists())
-					break;
+			for(final CMFile F : fileList)
 				lines.addAll(Resources.getFileLineVector(F.text()));
-			}
 			for(String line : lines)
 			{
 				line=line.trim();

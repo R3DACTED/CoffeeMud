@@ -13,7 +13,7 @@ import com.planet_ink.coffee_mud.Behaviors.interfaces.*;
 import com.planet_ink.coffee_mud.CharClasses.interfaces.*;
 import com.planet_ink.coffee_mud.Commands.interfaces.*;
 import com.planet_ink.coffee_mud.Common.interfaces.*;
-import com.planet_ink.coffee_mud.Common.interfaces.AccountStats.PrideStat;
+import com.planet_ink.coffee_mud.Common.interfaces.PrideStats.PrideStat;
 import com.planet_ink.coffee_mud.Common.interfaces.ScriptingEngine.SubScript;
 import com.planet_ink.coffee_mud.Common.interfaces.Session.InputCallback;
 import com.planet_ink.coffee_mud.Exits.interfaces.*;
@@ -29,6 +29,7 @@ import com.planet_ink.coffee_mud.Races.interfaces.*;
 
 import org.mozilla.javascript.*;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -5823,9 +5824,9 @@ public class DefaultScriptingEngine implements ScriptingEngine
 						else
 						if((CMClass.classID(R).toUpperCase().indexOf(uarg2)>=0)
 						||((R.domainType()<Room.INDOORS)
-							&&uarg2.startsWith("OUTDOOR")||(Room.DOMAIN_OUTDOOR_DESCS[R.domainType()].indexOf(uarg2)>=0))
+							&&(uarg2.startsWith("OUTDOOR")||(Room.DOMAIN_OUTDOOR_DESCS[R.domainType()].indexOf(uarg2)>=0)))
 						||((R.domainType()>=Room.INDOORS)
-							&&uarg2.startsWith("INDOOR")||(Room.DOMAIN_INDOORS_DESCS[R.domainType()&~Room.INDOORS].indexOf(uarg2)>=0)))
+							&&(uarg2.startsWith("INDOOR")||(Room.DOMAIN_INDOORS_DESCS[R.domainType()&~Room.INDOORS].indexOf(uarg2)>=0))))
 							returnable=true;
 						else
 							returnable=false;
@@ -13287,7 +13288,7 @@ public class DefaultScriptingEngine implements ScriptingEngine
 							CMLib.map().sendGlobalMessage(M, CMMsg.TYP_WINQUEST, winMsg);
 						}
 						Q.declareWinner(whoName);
-						CMLib.players().bumpPrideStat(M,AccountStats.PrideStat.QUESTS_COMPLETED, 1);
+						CMLib.players().bumpPrideStat(M,PrideStats.PrideStat.QUESTS_COMPLETED, 1);
 					}
 					else
 						logError(ctx.scripted,"MPQUESTWIN","Unknown","Quest: "+s);
@@ -15375,6 +15376,8 @@ public class DefaultScriptingEngine implements ScriptingEngine
 			final Area A=CMLib.map().areaLocation(ticking);
 			if((A!=null)&&(A.getAreaState() != Area.State.ACTIVE))
 			{
+				if(this.que.size()>0)
+					this.que.clear();
 				return true;
 			}
 		}
@@ -15382,7 +15385,10 @@ public class DefaultScriptingEngine implements ScriptingEngine
 		{
 			if((lastKnownLocation !=null)
 			&&(lastKnownLocation.numPCInhabitants()==0))
+			{
+				dequeResponses(null);
 				return true;
+			}
 		}
 		if(defaultItem != null)
 		{
@@ -15660,8 +15666,11 @@ public class DefaultScriptingEngine implements ScriptingEngine
 
 	protected void dupCheckClear(final ScriptableResponse resp, final String[] triggerStr)
 	{
-		if(que.size()>25)
+		if(que.size()>5)
 		{
+			int max = 25;
+			if(resp.ctx.scripted instanceof Area)
+				max = 150;
 			final int hc = resp.hashCode();
 			ScriptableResponse SB=null;
 			for(int q=que.size()-1; q >= 0; q--)
@@ -15678,12 +15687,12 @@ public class DefaultScriptingEngine implements ScriptingEngine
 					continue;
 				}
 			}
-			if(que.size()>25)
+			if(que.size()>max)
 			{
 				if(triggerStr == null)
-					this.logError(resp.ctx.scripted, "UNK", "SYS", "Attempt to pre-que more than 25 events).");
+					this.logError(resp.ctx.scripted, "UNK", "SYS", "Attempt to pre-que more than "+max+" events).");
 				else
-					this.logError(resp.ctx.scripted, "UNK", "SYS", "Attempt to enque more than 25 events (last was "+CMParms.toListString(triggerStr)+" ).");
+					this.logError(resp.ctx.scripted, "UNK", "SYS", "Attempt to enque more than "+max+" events (last was "+CMParms.toListString(triggerStr)+" ).");
 				final StringBuilder rpt=new StringBuilder("Queue Log:\n\r");
 				for(int q=que.size()-1; q >= 0; q--)
 				{
@@ -15692,9 +15701,9 @@ public class DefaultScriptingEngine implements ScriptingEngine
 						SB = que.get(q);
 						if(SB != null)
 						{
-							rpt.append(CMStrings.padRight(""+q,2)+") trig="+SB.triggerCode)
-								.append(", src="+((SB.ctx.source==null)?SB.ctx.source.name():"null"))
-								.append(", when="+CMLib.time().date2APTimeString(SB.queuedAt))
+							rpt.append(CMStrings.padRight(""+q,2)+") "+SB.triggerCode)
+								.append(", src="+((SB.ctx.source==null)?"null":SB.ctx.source.name()))
+								.append(", when="+new SimpleDateFormat("yyyyMMdd.HHmm.ss").format(Long.valueOf(SB.queuedAt)))
 								.append("\n\r");
 						}
 					}
@@ -15703,7 +15712,7 @@ public class DefaultScriptingEngine implements ScriptingEngine
 						continue;
 					}
 				}
-				Log.debugOut(rpt.toString());
+				//Log.debugOut(rpt.toString());
 				que.clear();
 			}
 		}

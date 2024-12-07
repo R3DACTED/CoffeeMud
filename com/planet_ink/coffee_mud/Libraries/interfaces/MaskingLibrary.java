@@ -135,6 +135,15 @@ public interface MaskingLibrary extends CMLibrary
 	public boolean maskCheck(final CompiledZMask cset, final Environmental E, final boolean actual);
 
 	/**
+	 * Given a compiled zappermask containing only date/time and birth date/time related filters,
+	 * this will return whether the given clock passes the filter, or is rejected by it.
+	 * @param cset the compiled zappermask to apply to the player
+	 * @param C the clock to apply the pas to
+	 * @return true to pass the given clock, false if rejected
+	 */
+	public boolean maskCheckDateEntries(final CompiledZMask cset, final TimeClock C);
+
+	/**
 	 * Given a zappermask and a Environmental object, this will return whether the
 	 * Environmental passes the filter, or is rejected by it.
 	 *
@@ -279,6 +288,34 @@ public interface MaskingLibrary extends CMLibrary
 	 * @return null, or the expiring timeclock that will make the mask false.
 	 */
 	public TimeClock dateMaskToExpirationTimeClock(final Physical P, final CompiledZMask cset);
+
+	/**
+	 * Given a specially formatted item mask, this produces a CompiledZMask that
+	 * reflects the special format.  If an error occurs, null is returned and
+	 * the list is returned with an error message as the first element.
+	 *
+	 * @param parsed the space-parsed string to use for further parsing
+	 * @return null for an error, or a compiledzmask
+	 */
+	public CompiledZMask parseSpecialItemMask(final List<String> parsed);
+
+	/**
+	 * Enum for special item mask item types
+	 *
+	 * @author Bo Zimmerman
+	 *
+	 */
+	public enum SpecialItemType
+	{
+		WEAPON,
+		ARMOR,
+		WAND,
+		RING,
+		RESOURCE,
+		FOOD,
+		DRINK,
+		POTION
+	}
 
 	/**
 	 * The set of mask types.  Each of these reflects some stat or

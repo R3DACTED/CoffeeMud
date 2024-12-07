@@ -1691,7 +1691,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		final FetchFlags flags=fetchFlags(srchStr);
 		if(flags==null)
 			return srchStr;
-		if(flags.allFlag)
+		if(flags.allFlag||flags.lastFlag)
 			return srchStr;
 		return (flags.occurrance+thisMuch)+"."+flags.srchStr;
 	}
@@ -1870,7 +1870,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 	{
 		if(matchWords.isEmpty())
 		{
-			if(error.length()>0)
+			if((error!=null)&&(error.length()>0))
 				mob.tell(error);
 			return null;
 		}
@@ -1879,7 +1879,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		final List<Environmental> V=CMLib.coffeeShops().getAllShopkeepers(mob.location(),mob);
 		if(V.isEmpty())
 		{
-			if(error.length()>0)
+			if((error!=null)&&(error.length()>0))
 				mob.tell(error);
 			return null;
 		}
@@ -1889,7 +1889,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		{
 			if(matchWords.size()<2)
 			{
-				if(error.length()>0)
+				if((error!=null)&&(error.length()>0))
 					mob.tell(error);
 				return null;
 			}
@@ -2729,6 +2729,41 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 	}
 
 	@Override
+	public Triad<String, Double, Long> parseMoneyStringSDL(String currency, String moneyStr)
+	{
+		double b=0;
+		double denomination=1.0;
+		if(moneyStr == null)
+			return null;
+		moneyStr=moneyStr.trim();
+		if(moneyStr.length()==0)
+			return null;
+		int x=0;
+		while((x<moneyStr.length())&&(Character.isDigit(moneyStr.charAt(x))))
+			x++;
+		if(x>0)
+		{
+			b=CMath.s_int(moneyStr.substring(0,x));
+			moneyStr=moneyStr.substring(x).trim();
+		}
+		if(moneyStr.length()==0)
+			return new Triad<String,Double,Long>(currency,Double.valueOf(denomination),Long.valueOf(Math.round(b/denomination)));
+		if(b==0)
+			b=1.0;
+		denomination = matchAnyDenomination(currency,moneyStr);
+		if(denomination != 0.0)
+			return new Triad<String,Double,Long>(currency,Double.valueOf(denomination),Long.valueOf(Math.round(b/denomination)));
+		// its some other kind of money other than the given currency
+		currency=matchAnyCurrencySet(moneyStr);
+		if(currency == null)
+			return null;
+		denomination = matchAnyDenomination(currency,moneyStr);
+		if(denomination != 0.0)
+			return new Triad<String,Double,Long>(currency,Double.valueOf(denomination),Long.valueOf(Math.round(b/denomination)));
+		return null;
+	}
+
+	@Override
 	public Triad<String, Double, Long> parseMoneyStringSDL(final MOB mob, final String moneyStr, String correctCurrency)
 	{
 		double b=0;
@@ -2777,7 +2812,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 					if(checkWhat instanceof MOB)
 						fromWhat=mob.findItem(null,packCheckName);
 					else
-					if(checkWhat instanceof Room)
+					if(checkWhat instanceof Room) //TODO: this seems to favor the mob, which might be wrong.
 						fromWhat=((Room)checkWhat).fetchFromMOBRoomFavorsItems(mob,null,packCheckName,Wearable.FILTER_UNWORNONLY);
 					if(fromWhat instanceof Item)
 					{
@@ -2814,7 +2849,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						else
 						if(getOnly&&mob.isMine(fromWhat)&&mob.isMine(toWhat))
 						{
-							mob.tell(L("Ok"));
+							CMLib.commands().postCommandFail(mob,new XVector<String>(commands),L("You already have that."));
 							return -1;
 						}
 						else
@@ -2954,13 +2989,15 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		public String	srchStr;
 		public int		occurrance;
 		public boolean	allFlag;
+		public boolean	lastFlag;
 		public Filterer<Environmental> filter = null;
 
-		public FetchFlags(final String ss, final int oc, final boolean af)
+		public FetchFlags(final String ss, final int oc, final boolean af, final boolean lf)
 		{
 			srchStr = ss;
 			occurrance = oc;
 			allFlag = af;
+			lastFlag = lf;
 		}
 	}
 
@@ -2997,6 +3034,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 			return null;
 
 		boolean allFlag=false;
+		boolean lastFlag=false;
 		if(srchStr.startsWith("ALL"))
 		{
 			if(srchStr.length()>3)
@@ -3016,21 +3054,39 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		if(dot>=0)
 		{
 			String sub=srchStr.substring(dot+1);
-			occurrance=CMath.s_int(sub);
-			if(occurrance>0)
+			if(sub.equals("LAST"))
+			{
 				srchStr=srchStr.substring(0,dot);
+				lastFlag=true;
+				occurrance=Short.MAX_VALUE;
+			}
 			else
 			{
-				dot=srchStr.indexOf('.');
-				sub=srchStr.substring(0,dot);
 				occurrance=CMath.s_int(sub);
 				if(occurrance>0)
-					srchStr=srchStr.substring(dot+1);
+					srchStr=srchStr.substring(0,dot);
 				else
-					occurrance=0;
+				{
+					dot=srchStr.indexOf('.');
+					sub=srchStr.substring(0,dot);
+					if(sub.equals("LAST"))
+					{
+						srchStr=srchStr.substring(dot+1);
+						lastFlag=true;
+						occurrance=Short.MAX_VALUE;
+					}
+					else
+					{
+						occurrance=CMath.s_int(sub);
+						if(occurrance>0)
+							srchStr=srchStr.substring(dot+1);
+						else
+							occurrance=0;
+					}
+				}
 			}
 		}
-		return new FetchFlags(srchStr,occurrance,allFlag);
+		return new FetchFlags(srchStr,occurrance,allFlag,lastFlag);
 	}
 
 	protected String cleanExtraneousDollarMarkers(final String srchStr)
@@ -3058,6 +3114,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		srchStr=flags.srchStr;
 		int myOccurrance=flags.occurrance;
 		final boolean allFlag=flags.allFlag;
+		Environmental lastO = null;
 		try
 		{
 			if(exactOnly)
@@ -3075,6 +3132,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									return E;
+								lastO = E;
 							}
 						}
 					}
@@ -3090,6 +3148,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 					{
 						if((--myOccurrance)<=0)
 							return E;
+						lastO = E;
 					}
 				}
 				if(myOccurrance == flags.occurrance)
@@ -3103,6 +3162,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						{
 							if((--myOccurrance)<=0)
 								return E;
+							lastO = E;
 						}
 					}
 				}
@@ -3111,6 +3171,8 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		catch (final IndexOutOfBoundsException x)
 		{
 		}
+		if((flags.lastFlag)&&(lastO != null))
+			return lastO;
 		return null;
 	}
 
@@ -3123,6 +3185,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 
 		srchStr=flags.srchStr;
 		int myOccurrance=flags.occurrance;
+		T lastO = null;
 		final boolean allFlag=flags.allFlag;
 		try
 		{
@@ -3148,6 +3211,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									return E;
+								lastO = E;
 							}
 						}
 					}
@@ -3165,6 +3229,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						{
 							if((--myOccurrance)<=0)
 								return E;
+							lastO = E;
 						}
 					}
 				}
@@ -3177,6 +3242,8 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		{
 			Log.errOut(e);
 		}
+		if((flags.lastFlag)&&(lastO != null))
+			return lastO;
 		return null;
 	}
 
@@ -3190,6 +3257,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		srchStr=flags.srchStr;
 		int myOccurrance=flags.occurrance;
 		final boolean allFlag=flags.allFlag;
+		Exit lastO = null;
 		try
 		{
 			if(exactOnly)
@@ -3209,6 +3277,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									return (Exit)E;
+								lastO = (Exit)E;
 							}
 						}
 					}
@@ -3227,6 +3296,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 					{
 						if((--myOccurrance)<=0)
 							return (Exit)E;
+						lastO = (Exit)E;
 					}
 				}
 				if(myOccurrance == flags.occurrance)
@@ -3238,6 +3308,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						{
 							if((--myOccurrance)<=0)
 								return (Exit)E;
+							lastO = (Exit)E;
 						}
 					}
 				}
@@ -3246,6 +3317,8 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		catch (final IndexOutOfBoundsException x)
 		{
 		}
+		if((flags.lastFlag)&&(lastO != null))
+			return lastO;
 		return null;
 	}
 
@@ -3259,6 +3332,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		srchStr=flags.srchStr;
 		int myOccurrance=flags.occurrance;
 		final boolean allFlag=flags.allFlag;
+		Environmental lastO = null;
 		try
 		{
 			if(exactOnly)
@@ -3279,6 +3353,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									return E;
+								lastO = E;
 							}
 						}
 					}
@@ -3300,6 +3375,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 					{
 						if((--myOccurrance)<=0)
 							return E;
+						lastO = E;
 					}
 				}
 			}
@@ -3307,6 +3383,8 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		catch (final IndexOutOfBoundsException x)
 		{
 		}
+		if((flags.lastFlag)&&(lastO != null))
+			return lastO;
 		return null;
 	}
 
@@ -3320,6 +3398,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		srchStr=flags.srchStr;
 		int myOccurrance=flags.occurrance;
 		final boolean allFlag=flags.allFlag;
+		Environmental lastO = null;
 		try
 		{
 			if(exactOnly)
@@ -3338,6 +3417,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									return E;
+								lastO = E;
 							}
 						}
 					}
@@ -3359,6 +3439,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 					{
 						if((--myOccurrance)<=0)
 							return E;
+						lastO = E;
 					}
 				}
 			}
@@ -3366,6 +3447,8 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		catch (final IndexOutOfBoundsException x)
 		{
 		}
+		if((flags.lastFlag)&&(lastO != null))
+			return lastO;
 		return null;
 	}
 
@@ -3382,6 +3465,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		srchStr=flags.srchStr;
 		int myOccurrance=flags.occurrance;
 		final boolean allFlag=flags.allFlag;
+		Environmental lastO = null;
 		try
 		{
 			if(exactOnly)
@@ -3399,6 +3483,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									matches.addElement(E);
+								lastO = E;
 							}
 						}
 					}
@@ -3414,6 +3499,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 					{
 						if((--myOccurrance)<=0)
 							matches.addElement(E);
+						lastO = E;
 					}
 				}
 				if(matches.isEmpty() && (myOccurrance == flags.occurrance))
@@ -3427,6 +3513,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						{
 							if((--myOccurrance)<=0)
 								matches.addElement(E);
+							lastO = E;
 						}
 					}
 				}
@@ -3435,6 +3522,8 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		catch (final IndexOutOfBoundsException x)
 		{
 		}
+		if((flags.lastFlag)&&(lastO != null)&&(matches.size()==0))
+			matches.add(lastO);
 		return matches;
 	}
 
@@ -3450,7 +3539,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		srchStr=flags.srchStr;
 		int myOccurrance=flags.occurrance;
 		final boolean allFlag=flags.allFlag;
-
+		Environmental lastO = null;
 		if(list.get(srchStr)!=null)
 			return list.get(srchStr);
 		Environmental E=null;
@@ -3470,6 +3559,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						{
 							if((--myOccurrance)<=0)
 								return E;
+							lastO = E;
 						}
 					}
 				}
@@ -3486,6 +3576,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 				{
 					if((--myOccurrance)<=0)
 						return E;
+					lastO = E;
 				}
 			}
 			if(myOccurrance == flags.occurrance)
@@ -3500,11 +3591,14 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						{
 							if((--myOccurrance)<=0)
 								return E;
+							lastO = E;
 						}
 					}
 				}
 			}
 		}
+		if((flags.lastFlag)&&(lastO != null))
+			return lastO;
 		return null;
 	}
 
@@ -3520,6 +3614,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		srchStr=flags.srchStr;
 		int myOccurrance=flags.occurrance;
 		final boolean allFlag=flags.allFlag;
+		Item lastO = null;
 		if(exactOnly)
 		{
 			try
@@ -3541,6 +3636,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						{
 							if((--myOccurrance)<=0)
 								return I;
+							lastO = I;
 						}
 					}
 				}
@@ -3565,6 +3661,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 					{
 						if((--myOccurrance)<=0)
 							return I;
+						lastO = I;
 					}
 				}
 			}
@@ -3585,6 +3682,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						{
 							if((--myOccurrance)<=0)
 								return I;
+							lastO = I;
 						}
 					}
 				}
@@ -3593,6 +3691,8 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 				}
 			}
 		}
+		if((flags.lastFlag)&&(lastO != null))
+			return lastO;
 		return null;
 	}
 
@@ -3609,6 +3709,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		srchStr=flags.srchStr;
 		int myOccurrance=flags.occurrance;
 		final boolean allFlag=flags.allFlag;
+		Item lastO = null;
 		try
 		{
 			if(exactOnly)
@@ -3629,6 +3730,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						{
 							if((--myOccurrance)<=0)
 								matches.addElement(I);
+							lastO = I;
 						}
 					}
 				}
@@ -3647,6 +3749,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 					{
 						if((--myOccurrance)<=0)
 							matches.addElement(I);
+						lastO = I;
 					}
 				}
 				if(matches.isEmpty() && (myOccurrance == flags.occurrance))
@@ -3662,6 +3765,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						{
 							if((--myOccurrance)<=0)
 								matches.addElement(I);
+							lastO = I;
 						}
 					}
 				}
@@ -3670,6 +3774,8 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		catch (final IndexOutOfBoundsException x)
 		{
 		}
+		if((flags.lastFlag)&&(lastO != null)&&(matches.size()==0))
+			matches.add(lastO);
 		return matches;
 	}
 
@@ -3685,7 +3791,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		srchStr=flags.srchStr;
 		int myOccurrance=flags.occurrance - counterSlap[0];
 		final boolean allFlag=flags.allFlag;
-
+		Environmental lastO = null;
 		Item I=null;
 		try
 		{
@@ -3708,6 +3814,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									return I;
+								lastO = I;
 							}
 						}
 					}
@@ -3722,6 +3829,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									return E;
+								lastO = I;
 							}
 						}
 					}
@@ -3742,6 +3850,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						{
 							if((--myOccurrance)<=0)
 								return I;
+							lastO = I;
 						}
 					}
 					else
@@ -3751,6 +3860,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 					{
 						if((--myOccurrance)<=0)
 							return E;
+						lastO = I;
 					}
 				}
 
@@ -3768,6 +3878,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									return I;
+								lastO = I;
 							}
 						}
 						else
@@ -3779,6 +3890,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									return E;
+								lastO = I;
 							}
 						}
 					}
@@ -3788,6 +3900,8 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		catch (final IndexOutOfBoundsException x)
 		{
 		}
+		if((flags.lastFlag)&&(lastO != null))
+			return lastO;
 		counterSlap[0]+=(flags.occurrance-myOccurrance);
 		return null;
 	}
@@ -3804,7 +3918,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		srchStr=flags.srchStr;
 		int myOccurrance=flags.occurrance;
 		final boolean allFlag=flags.allFlag;
-
+		Environmental lastO = null;
 		Item I=null;
 		try
 		{
@@ -3827,6 +3941,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									return I;
+								lastO = I;
 							}
 						}
 					}
@@ -3843,6 +3958,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									return E;
+								lastO = E;
 							}
 						}
 					}
@@ -3863,6 +3979,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 						{
 							if((--myOccurrance)<=0)
 								return I;
+							lastO = I;
 						}
 					}
 					else
@@ -3872,6 +3989,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 					{
 						if((--myOccurrance)<=0)
 							return E;
+						lastO = E;
 					}
 				}
 
@@ -3889,6 +4007,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									return I;
+								lastO = I;
 							}
 						}
 						else
@@ -3899,6 +4018,7 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 							{
 								if((--myOccurrance)<=0)
 									return E;
+								lastO = E;
 							}
 						}
 					}
@@ -3908,6 +4028,8 @@ public class EnglishParser extends StdLibrary implements EnglishParsing
 		catch (final IndexOutOfBoundsException x)
 		{
 		}
+		if((flags.lastFlag)&&(lastO != null))
+			return lastO;
 		return null;
 	}
 }

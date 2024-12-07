@@ -215,6 +215,7 @@ public class Druid extends StdCharClass
 		CMLib.ableMapper().addCharAbilityMapping(ID(),13,"Chant_HoldAnimal",false);
 		CMLib.ableMapper().addCharAbilityMapping(ID(),13,"Chant_PlantBed",false);
 		CMLib.ableMapper().addCharAbilityMapping(ID(),13,"Chant_LightningWard",false);
+		CMLib.ableMapper().addCharAbilityMapping(ID(),13,"Chant_StabilizeForm",false);
 
 		CMLib.ableMapper().addCharAbilityMapping(ID(),14,"Chant_ColdWard",false);
 		CMLib.ableMapper().addCharAbilityMapping(ID(),14,"Chant_Bury",false);
@@ -476,8 +477,8 @@ public class Druid extends StdCharClass
 		&&(msg.source().isMonster())
 		&&(msg.source().basePhyStats().level() < msg.value()))
 		{
-			final MOB druidM=msg.source().amUltimatelyFollowing();
-			if((druidM!=null)
+			final MOB druidM=msg.source().getGroupLeader();
+			if((druidM != msg.source())
 			&&(!druidM.isMonster())
 			&&(druidM.charStats().getCurrentClass().ID().equals(C.ID()))
 			&&(CMLib.flags().isAnAnimal(msg.source())

@@ -695,7 +695,14 @@ public class Arrest extends StdBehavior implements LegalBehavior
 					}
 				}
 				if(lawprops.isEmpty())
-					lawprops.load(new ByteArrayInputStream(new CMFile(Resources.makeFileResourceName(lawName),null).raw()));
+				{
+					for(final CMFile F : CMFile.getExistingExtendedFiles(Resources.makeFileResourceName(lawName),null, CMFile.FLAG_FORCEALLOW))
+					{
+						final Properties props=new Properties();
+						props.load(new ByteArrayInputStream(F.raw()));
+						lawprops.putAll(props);
+					}
+				}
 			}
 			catch(final IOException e)
 			{
@@ -996,10 +1003,7 @@ public class Arrest extends StdBehavior implements LegalBehavior
 
 	public int getBanishmentTicks(final Law laws, final LegalWarrant W, final MOB criminal)
 	{
-		TimeClock C=CMLib.time().globalClock();
-		if(criminal != null)
-			C=CMLib.time().localClock(criminal);
-
+		final TimeClock C=CMLib.time().localClock(criminal);
 		String s=null;
 		int days=0;
 		if(CMath.bset(W.punishmentCode(),Law.PUNISHMENTMASK_SEPARATE))
@@ -1035,10 +1039,7 @@ public class Arrest extends StdBehavior implements LegalBehavior
 
 	public int getShameTicks(final Law laws, final LegalWarrant W, final MOB criminal)
 	{
-		TimeClock C=CMLib.time().globalClock();
-		if(criminal != null)
-			C=CMLib.time().localClock(criminal);
-
+		final TimeClock C=CMLib.time().localClock(criminal);
 		String s=null;
 		int days=0;
 		if(CMath.bset(W.punishmentCode(),Law.PUNISHMENTMASK_SEPARATE))
@@ -1802,9 +1803,7 @@ public class Arrest extends StdBehavior implements LegalBehavior
 		&&(judge != null))
 		{
 			final int ticks=getBanishmentTicks(laws,W,criminal);
-			TimeClock C=CMLib.time().globalClock();
-			if(criminal != null)
-				C=CMLib.time().localClock(criminal);
+			final TimeClock C=CMLib.time().localClock(criminal);
 			if((ticks > 0)
 			&&(judge!=null)
 			&&(criminal != null)
@@ -1838,9 +1837,7 @@ public class Arrest extends StdBehavior implements LegalBehavior
 		&&(judge != null))
 		{
 			final int ticks=getShameTicks(laws,W,criminal);
-			TimeClock C=CMLib.time().globalClock();
-			if(criminal != null)
-				C=CMLib.time().localClock(criminal);
+			final TimeClock C=CMLib.time().localClock(criminal);
 			if((ticks > 0)
 			&&(judge!=null)
 			&&(criminal != null)
@@ -2470,8 +2467,8 @@ public class Arrest extends StdBehavior implements LegalBehavior
 			this.fillOutMurderWarrant(laws, myArea, criminal, msg.source());
 			if(criminal.isMonster() && (isAnyKindOfOfficer(laws, msg.source())))
 			{
-				final MOB leaderM = criminal.amUltimatelyFollowing();
-				if((leaderM != null) && (leaderM != criminal) && (!leaderM.isMonster()))
+				final MOB leaderM = criminal.getGroupLeader();
+				if((leaderM != criminal) && (!leaderM.isMonster()))
 					this.fillOutMurderWarrant(laws, myArea, leaderM, msg.source());
 			}
 			return;

@@ -35,7 +35,7 @@ import java.util.*;
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-public class Thief_Kidnapping extends ThiefSkill
+public class Thief_Kidnapping extends ThiefSkill implements PrivateProperty
 {
 	@Override
 	public String ID()
@@ -76,6 +76,7 @@ public class Thief_Kidnapping extends ThiefSkill
 	protected String			roomID			= "";
 	protected Room				roomR			= null;
 	protected String			followName		= null;
+	protected int				price			= -1;
 
 	@Override
 	public int classificationCode()
@@ -144,7 +145,7 @@ public class Thief_Kidnapping extends ThiefSkill
 	protected static boolean isKidnappable(final MOB kidnapperM, final MOB M)
 	{
 		if((M.charStats().ageCategory()>=Race.AGE_YOUNGADULT)
-		&&(!CMLib.flags().isAgingChild(M))
+		&&(!CMLib.flags().isAgedChild(M))
 		&&(!CMLib.flags().isAnimalIntelligence(M))
 		&&(!CMStrings.containsWord(M.name().toLowerCase(), "child"))
 		&&(!CMStrings.containsWord(M.name().toLowerCase(), "kid")))
@@ -152,7 +153,7 @@ public class Thief_Kidnapping extends ThiefSkill
 		if(M.isPlayer()||(!M.isMonster()))
 			return kidnapperM.mayIFight(M);
 		if((M.amFollowing()!=null) && (M.amFollowing()!=kidnapperM))
-			return kidnapperM.mayIFight(M.amUltimatelyFollowing());
+			return kidnapperM.mayIFight(M.getGroupLeader());
 		return true;
 	}
 
@@ -217,8 +218,7 @@ public class Thief_Kidnapping extends ThiefSkill
 		if(affected instanceof MOB)
 		{
 			final MOB M = (MOB)affected;
-			if((!M.isAttributeSet(Attrib.AUTOASSIST))
-			&&(!CMLib.flags().isAgingChild(affected)))
+			if(!M.isAttributeSet(Attrib.AUTOASSIST))
 				M.setAttribute(Attrib.AUTOASSIST, true); // true means its assist is turned OFF
 			if(invoker() == null)
 				return true;
@@ -282,6 +282,26 @@ public class Thief_Kidnapping extends ThiefSkill
 					}
 				}
 			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean okMessage(final Environmental myHost, final CMMsg msg)
+	{
+		if(!super.okMessage(myHost,msg))
+			return false;
+
+		if((msg.targetMinor()==CMMsg.TYP_ORDER)
+		&&(msg.source().location()!=null)
+		&&(msg.target()==affected)
+		&&(affected instanceof MOB)
+		&&(msg.source() == invoker)
+		&&(msg.sourceMessage()!=null)
+		&&(msg.sourceMessage().length()>0))
+		{
+			CMLib.commands().postSay((MOB)affected, "You're not the boss of me!");
+			return false;
 		}
 		return true;
 	}
@@ -381,10 +401,15 @@ public class Thief_Kidnapping extends ThiefSkill
 					{
 						kA.reAssist = autoAssist;
 						kA.invoker = mob;
-						if(!wasFollowing)
-							kA.roomID = CMLib.map().getExtendedRoomID(target.location());
-						else
+
+						if(wasFollowing)
 							kA.followName = followName;
+						else
+						if((target.getLiegeID().length()>0)
+						&&(CMLib.flags().isInTheGame(CMLib.players().getPlayerAllHosts(target.getLiegeID()), true)))
+							kA.followName = target.getLiegeID();
+						else
+							kA.roomID = CMLib.map().getExtendedRoomID(target.location());
 
 						kA.makeNonUninvokable();
 					}
@@ -399,5 +424,54 @@ public class Thief_Kidnapping extends ThiefSkill
 
 		// return whether it worked
 		return success;
+	}
+
+	@Override
+	public int getPrice()
+	{
+		if(price < 0)
+		{
+			price = 90;
+			final Physical P = affected;
+			if(P != null)
+				price = price + (P.phyStats().level()*10);
+		}
+		return price;
+	}
+
+	@Override
+	public void setPrice(final int price)
+	{
+		this.price = price;
+	}
+
+	@Override
+	public String getOwnerName()
+	{
+		final Physical P = affected;
+		if((followName!=null)&&(followName.length()>0))
+			return followName;
+		if((P instanceof MOB)&&(((MOB)P).getLiegeID().length()>0))
+			return ((MOB)P).getLiegeID();
+		return "";
+	}
+
+	@Override
+	public void setOwnerName(final String owner)
+	{
+		followName = owner;
+	}
+
+	@Override
+	public boolean isProperlyOwned()
+	{
+		return getOwnerName().length()>0;
+	}
+
+	@Override
+	public String getTitleID()
+	{
+		final Physical P = affected;
+		return (P==null)?"":P.Name();
 	}
 }

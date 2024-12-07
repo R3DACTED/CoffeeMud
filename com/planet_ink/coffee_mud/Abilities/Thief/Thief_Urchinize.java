@@ -94,10 +94,12 @@ public class Thief_Urchinize extends ThiefSkill
 		return USAGE_MOVEMENT | USAGE_MANA;
 	}
 
-	protected Map<MOB, Long>	failures		= new Hashtable<MOB, Long>();
-	protected Boolean urchinizing = null;
-	protected int tickUp = 0;
-	protected int tickSuccess = 0;
+	protected static final int	REJUV_TICKS = 24000;
+
+	protected Map<MOB, Long>	failures	= new Hashtable<MOB, Long>();
+	protected Boolean			urchinizing	= null;
+	protected int				tickUp		= 0;
+	protected int				tickSuccess	= 0;
 
 	protected boolean forceUninvoke()
 	{
@@ -120,6 +122,26 @@ public class Thief_Urchinize extends ThiefSkill
 		&&(this.canBeUninvoked))
 			((MOB)affected).location().show((MOB)affected, null,CMMsg.MSG_OK_VISUAL,L("<S-NAME> fail(s) to become an urchin."));
 		super.unInvoke();
+	}
+
+	@Override
+	public void setAffectedOne(final Physical P)
+	{
+		final Physical oldP = affected;
+		super.setAffectedOne(P);
+		if((oldP instanceof MOB)
+		&&(P == null)
+		&&(urchinizing==null))
+		{
+			final MOB mob=(MOB)oldP;
+			MOB invoker = invoker();
+			if((invoker == null)
+			&&(mob.getLiegeID()!=null)
+			&&(mob.getLiegeID().length()>0))
+				invoker=CMLib.players().getLoadPlayer(mob.getLiegeID());
+			Thief_MyUrchins.removeLostUrchin(invoker, mob);
+			mob.delEffect(this);
+		}
 	}
 
 	protected boolean urchinTick()
@@ -163,6 +185,8 @@ public class Thief_Urchinize extends ThiefSkill
 					A.setProficiency(100);
 					M.addAbility(A);
 				}
+				M.delAllBehaviors();
+				M.delAllScripts();
 				Behavior B = CMClass.getBehavior("Thiefness");
 				B.setParms("Thief");
 				M.addBehavior(B);
@@ -205,7 +229,48 @@ public class Thief_Urchinize extends ThiefSkill
 			return false;
 		if(urchinizing == Boolean.TRUE)
 			return this.urchinTick();
+		else
+		if((ticking instanceof MOB)
+		&&(((MOB)ticking).phyStats().rejuv()!=0)
+		&&(((MOB)ticking).phyStats().rejuv()!=PhyStats.NO_REJUV)
+		&&(((MOB)ticking).amFollowing()==null)
+		&&(++tickUp >= REJUV_TICKS))
+		{
+			final MOB mob=(MOB)ticking;
+			final Room R = mob.location();
+			if(R==null)
+				return true;
+			final MOB newMob = (MOB) mob.copyOf();
+			newMob.basePhyStats().setRejuv(PhyStats.NO_REJUV);
+			newMob.phyStats().setRejuv(PhyStats.NO_REJUV);
+			newMob.text();
+			mob.delEffect(this);
+			mob.killMeDead(false);
+			Thief_MyUrchins.removeLostUrchin(invoker(), mob);
+			if((!CMLib.flags().isInTheGame(newMob, true))
+			&&(R!=null))
+				newMob.bringToLife(R, false);
+			newMob.setLiegeID(invoker().Name());
+			Thief_MyUrchins.addNewUrchin(invoker(), newMob);
+		}
 		return true;
+	}
+
+	@Override
+	public void executeMsg(final Environmental myHost, final CMMsg msg)
+	{
+		super.executeMsg(myHost, msg);
+		if((msg.sourceMinor()==CMMsg.TYP_DEATH)
+		&&(msg.source()==affected))
+		{
+			MOB invoker = invoker();
+			if((invoker == null)
+			&&(msg.source().getLiegeID()!=null)
+			&&(msg.source().getLiegeID().length()>0))
+				invoker=CMLib.players().getLoadPlayer(msg.source().getLiegeID());
+			Thief_MyUrchins.removeLostUrchin(invoker, msg.source());
+			msg.source().delEffect(this);
+		}
 	}
 
 	@Override

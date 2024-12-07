@@ -61,6 +61,7 @@ public class CMJournals extends StdLibrary implements JournalsLibrary
 	protected final Vector<ForumJournal>				forumJournalsSorted	= new Vector<ForumJournal>();
 	protected final SHashtable<String, ForumJournal>	forumJournals		= new SHashtable<String, ForumJournal>();
 	protected final Map<String, List<ForumJournal>>		clanForums			= new SHashtable<String, List<ForumJournal>>();
+	protected final Map<String, Integer>				itemJournals		= new SHashtable<String, Integer>();
 	protected final PairList<Long, String>				cronJobs			= new PairVector<Long, String>();
 	protected final List<JournalEntry>					nextEvents			= new LinkedList<JournalEntry>();
 
@@ -760,6 +761,12 @@ public class CMJournals extends StdLibrary implements JournalsLibrary
 				return E.update();
 			if(debug)
 				Log.debugOut("Running cron job "+E.subj());
+			mob = CMLib.players().getLoadPlayerAllHosts(E.from());
+			if(mob == null)
+			{
+				Log.errOut("Cron job "+E.subj()+" has unkknown runner "+E.from());
+				return touch;
+			}
 			long interval = CMProps.getMillisPerMudHour();
 			try
 			{
@@ -768,7 +775,10 @@ public class CMJournals extends StdLibrary implements JournalsLibrary
 					interval = CMath.s_long(intStr);
 				else
 				{
-					final int ticks = CMLib.time().parseTickExpression(intStr);
+					TimeClock C = E.getKnownClock();
+					if (C == null)
+						C = CMLib.time().homeClock(mob);
+					final int ticks = CMLib.time().parseTickExpression(C, intStr);
 					interval = ticks * CMProps.getTickMillis();
 				}
 			}
@@ -779,12 +789,6 @@ public class CMJournals extends StdLibrary implements JournalsLibrary
 			touch = System.currentTimeMillis()+interval;
 			E.update(System.currentTimeMillis()+interval);
 			CMLib.database().DBTouchJournalMessage(jobKey, E.update());
-			mob = CMLib.players().getLoadPlayerAllHosts(E.from());
-			if(mob == null)
-			{
-				Log.errOut("Cron job "+E.subj()+" has unkknown runner "+E.from());
-				return touch;
-			}
 			if(mob.session()==null)
 			{
 				fakeS=(Session)CMClass.getCommon("FakeSession");
@@ -988,6 +992,22 @@ public class CMJournals extends StdLibrary implements JournalsLibrary
 		setThreadStatus(serviceClient,"expiration journal sweeping");
 		try
 		{
+			for(final String journalName : itemJournals.keySet())
+			{
+				final Integer expireDays = itemJournals.get(journalName);
+				setThreadStatus(serviceClient,"updating journal "+journalName);
+				final long expirationDate = System.currentTimeMillis() - (TimeManager.MILI_DAY * expireDays.intValue());
+				final List<JournalEntry> items=CMLib.database().DBReadJournalMsgsOlderThan(journalName,null,expirationDate);
+				for(int i=items.size()-1;i>=0;i--)
+				{
+					final JournalEntry entry=items.get(i);
+					final String from=entry.from();
+					final String message=entry.msg();
+					Log.sysOut(Thread.currentThread().getName(),"Expired "+journalName+" from "+from+": "+message);
+					CMLib.database().DBDeleteJournal(journalName,entry.key());
+				}
+				setThreadStatus(serviceClient,"command journal sweeping");
+			}
 			for(final Enumeration<CommandJournal> e=commandJournals();e.hasMoreElements();)
 			{
 				final CommandJournal CMJ=e.nextElement();
@@ -1475,6 +1495,7 @@ public class CMJournals extends StdLibrary implements JournalsLibrary
 		clearCommandJournals();
 		clearForumJournals();
 		cronJobs.clear();
+		itemJournals.clear();
 		if(CMLib.threads().isTicking(this, TICKID_SUPPORT|Tickable.TICKID_SOLITARYMASK))
 		{
 			CMLib.threads().deleteTick(this, TICKID_SUPPORT|Tickable.TICKID_SOLITARYMASK);
@@ -2280,5 +2301,16 @@ public class CMJournals extends StdLibrary implements JournalsLibrary
 			Resources.updateCachedMultiLists("mailinglists.txt");
 		}
 		return updateMailingLists;
+	}
+
+	@Override
+	public void registerItemJournal(final Item itemJournal)
+	{
+		if(itemJournal != null)
+		{
+			final int expireDays = CMath.s_int(itemJournal.getStat("EXPIRE"));
+			if(expireDays > 0)
+				this.itemJournals.put(itemJournal.Name(), Integer.valueOf(expireDays));
+		}
 	}
 }

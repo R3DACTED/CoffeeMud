@@ -57,7 +57,7 @@ public class Gypsy extends Thief
 	@Override
 	public int availabilityCode()
 	{
-		return Area.THEME_FANTASY | Area.THEME_SKILLONLYMASK;
+		return Area.THEME_FANTASY;
 	}
 
 	@Override
@@ -134,6 +134,12 @@ public class Gypsy extends Thief
 	}
 
 	@Override
+	public String getOtherLimitsDesc()
+	{
+		return L("Must remain Neutral to avoid failure chances for some chants.");
+	}
+
+	@Override
 	public void initializeClass()
 	{
 		super.initializeClass();
@@ -172,6 +178,7 @@ public class Gypsy extends Thief
 		CMLib.ableMapper().addCharAbilityMapping(ID(),6,"Chant_RefreshRunes",true);
 
 		CMLib.ableMapper().addCharAbilityMapping(ID(),7,"Thief_Peek",true);
+		CMLib.ableMapper().addCharAbilityMapping(ID(),7,"Skill_Chantcraft",true);
 		CMLib.ableMapper().addCharAbilityMapping(ID(),7,"Fighter_StaffSweep",false);
 		CMLib.ableMapper().addCharAbilityMapping(ID(),7,"Thief_TarotReading",false);
 
@@ -537,8 +544,7 @@ public class Gypsy extends Thief
 				if(msg.tool().ID().equals("Skill_Chantcraft"))
 				{
 					if((msg.tool().text().length()>0)
-					&&(msg.target() instanceof MOB)
-					&&(msg.source().baseCharStats().getMyDeity()!=null))
+					&&(msg.target() instanceof MOB))
 					{
 						Ability A=((MOB)msg.target()).fetchAbility(msg.tool().text());
 						if(A==null)
@@ -611,7 +617,7 @@ public class Gypsy extends Thief
 						xp=200;
 					else
 						xp=CMLib.flags().isAliveAwakeMobileUnbound((MOB)msg.target(), true)?50:25;
-					CMLib.leveler().postExperience(mob,"CLASS:"+ID(),(MOB)msg.target()," for a successful "+msg.tool().name(),xp, false);
+					CMLib.leveler().postExperience(mob,"CLASS:"+ID(),null," for a successful "+msg.tool().name(),xp, false);
 				}
 			}
 		}

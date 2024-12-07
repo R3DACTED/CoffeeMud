@@ -171,7 +171,9 @@ public interface GenericBuilder extends CMLibrary
 		INVENTORYRESETDATE,
 		IDLETICKS,
 		PEACETICKS,
-		BIRTHDATE
+		BIRTHDATE,
+		AGEMINS,
+		AGENAME
 	}
 
 	/**
@@ -1188,6 +1190,20 @@ public interface GenericBuilder extends CMLibrary
 	 * @return the coded string of those effects
 	 */
 	public String getCodedSpellsOrBehaviors(PhysicalAgent I);
+
+	/**
+	 * Parses a single Ability from a coded string, or a list of them from a delimited
+	 * string.  Escape characters are supported.
+	 *
+	 * The syntax is ABILITYID(parms)[settings]
+	 * Settings are like KEY=VALUE KEY=VALUE, etc.  Both Parms and Settings are optional,
+	 * can have escaped characters, and may be in either order.
+	 *
+	 * @param spells the coded string with an ability
+	 * @param delimiter null, or a delimiter character
+	 * @return the list of abilities, which may be empty
+	 */
+	public List<Ability> getCodedEffects(final String spells, final Character delimiter);
 
 	/**
 	 * Parses the coded effects available from an ability parameter column and generates

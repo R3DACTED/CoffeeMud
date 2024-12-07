@@ -62,7 +62,8 @@ public class GrinderMobs
 		LIBMAXDAYS,LIBMAXBORROW,ISLIBRARIAN,LIBCMASK,
 		STATESTR,STATESUBJSTR,RIDERSTR,MOUNTSTR,DISMOUNTSTR,
 		ISDRINK, LIQUIDHELD, QUENCHED, LIQUIDTYPES, SIVIEWTYPES,
-		CURRENCIES, CURRENCY,CATARATE,CATALIVE,CATAMASK,CATACAP
+		CURRENCIES, CURRENCY,CATARATE,CATALIVE,CATAMASK,CATACAP,
+		ISBROKER, BROCHAIN, MAXLISTINGS, COMMISSIONPCT
 		;
 
 		public boolean isGenField;
@@ -817,6 +818,14 @@ public class GrinderMobs
 					if(M instanceof Librarian)
 						((Librarian)M).setMaxOverdueDays(CMath.s_int(old));
 					break;
+				case MAXLISTINGS: // max listings
+					if(M instanceof CraftBroker)
+						((CraftBroker)M).setMaxListings(CMath.s_int(old));
+					break;
+				case COMMISSIONPCT:
+					if(M instanceof CraftBroker)
+						((CraftBroker)M).setCommissionPct(CMath.s_pct(old));
+					break;
 				case LIBMAXBORROW: // library max borrowed
 					if(M instanceof Librarian)
 						((Librarian)M).setMaxBorrowed(CMath.s_int(old));
@@ -840,6 +849,10 @@ public class GrinderMobs
 				case AUCCHAIN: // auction house
 					if(M instanceof Auctioneer)
 						((Auctioneer)M).setAuctionHouse(old);
+					break;
+				case BROCHAIN: // auction house
+					if(M instanceof CraftBroker)
+						((CraftBroker)M).setBrokerChain(old);
 					break;
 				case LIVELIST: // live list
 					//if(M instanceof Auctioneer)
@@ -890,6 +903,14 @@ public class GrinderMobs
 						else
 							((Auctioneer)M).setMaxTimedAuctionDays(CMath.s_int(old));
 					}
+					else
+					if(M instanceof CraftBroker)
+					{
+						if(old.length()==0)
+							((CraftBroker)M).setMaxTimedListingDays(-1);
+						else
+							((CraftBroker)M).setMaxTimedListingDays(CMath.s_int(old));
+					}
 					break;
 				case MINDAYS: // min days
 					if(M instanceof Auctioneer)
@@ -901,6 +922,8 @@ public class GrinderMobs
 					}
 					break;
 				case ISAUCTION: // is auction
+					break;
+				case ISBROKER: // is broker
 					break;
 				case DEITYID: // deity
 					/*

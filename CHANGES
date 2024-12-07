@@ -1,4 +1,4 @@
-# Build 5.10.4 Release ??/??/2024
+# Build 5.10.4 Release 12/05/2024
   *  DATABASE CHANGED! (Bitmap field in CMCHAR table is now larger)
   1. Races/GenRaces support parameters for cultural abilities.
   2. Better MSSP/MSDP support.  New INI entry: MSXPVARS.
@@ -45,7 +45,7 @@
  43. The XML files feature from quest scripts can now be used in mobprog scripts also.
  44. New prayer: Divine Quest, mostly to use in blessings or curses.
  45. New spell: Tap Scroll, Mystic Task, mostly for use in scripts
- 46. Achievements now supports LEVELUP, LEVELDOWN, CLASSLEVELUP, CLASSLEVELDOWN events.
+ 46. Achievements now supports LEVELUP, LEVELDOWN, CLASSLEVELUP, CLASSLEVELDOWN, EFFECTSHAD events.
  47. POSE command now supports HERE argument.
  48. New Achievement award types: ITEM, and MOB
  49. New chants: Release Magic, Tasseography, Curse Mood, Enhance Jewelry, Extend Fortune
@@ -56,9 +56,31 @@
  54. New skills: Staff Spin, Scroll Familiarity, Trade Charting, Staff Thrust, Caravan Travel
  55. New chants: Steal Fortune, Strengthen Seed, Endow Club, Reverse Fortune, Endow Gemstones
  56. New thief skills: Conceal Pathway, Urchin Spy, Fortune Telling
- 57. New chants: Curse Seed, Endow Jewelry, Endow Ioun Stone
+ 57. New chants: Curse Seed, Endow Jewelry, Endow Ioun Stone, Stabilize Form
  58. New rideable type: furniture-hook
- 
+ 59. HELP can now match on common recipes to tell you which skill produces them.
+ 60. Many resource files can be 'extended' by adding versions with .1, .2, etc after the extension.
+ 61. Std/Gen Journals now support post and msg size limits, and post expiration.
+ 62. CONSIDER and GCONSIDER now support the "all" syntax.
+ 63. ACCOUNT now supports a sort field.
+ 64. Corpses can now be generated with some cause-of-death blurbs, see CORPSE_BLURBS in LISTS.INI.
+ 65. New MOB class: StdCraftBroker, allows players to craft for each other async. See Archons Guide
+ 66. Magical Ability code on armor now applies only to non-multiwear armor.
+ 67. Game Channels can now be tied to Discord channels via Discord Apps and Bots.
+ 68. New shopkeeper type: children seller (for an orphanage).
+ 69. New RP/MUSH-like command 'DIEROLL'.
+ 70. User selection masking now supports "LAST.", like GET LAST.SWORD
+ 71. FTELL will now invoke GTELL, but only for your followers.
+ 72. GROUP now supports LEADER keyword to change your group leader.
+ 73. FORMATION can now put anyone in front row, and attacks initiated by formation make front row tank.
+ 74. New item type: GenBurnOven -- an oven that requires burning fuel inside.
+ 75. New Property: TriggeredAffects, for having effects that are triggered :)
+ 76. New race: Rust Monster
+ 77. ORDER now works with animal followers for specific commands in LISTS.INI file
+ 78. Can now LIST DBCONNECTIONS to check database status
+ 79. New character class: Gypsy - thief subclass with druid highlights
+ 80. New command: AUTOTELLNOTIFY, with CONFIG support also, for account-based muds.
+
 # Build 5.10.3 Release 01/01/2024
   *. CoffeeMud now officially requires jdk 1.8.  ATM, it will still compile in 1.6 tho.
   1. New Paladin skills: Unholy Strike, Chaos Rage, Paladin's Fear, Paladin's Corruption

@@ -686,6 +686,8 @@ public class StdAbility implements Ability
 					}
 				}
 			}
+			if(mob.isPlayer())
+				CMLib.achievements().possiblyBumpAchievement(mob, AchievementLibrary.Event.EFFECTSHAD, 1, this);
 			try
 			{
 				room.recoverRoomStats();
@@ -2121,8 +2123,8 @@ public class StdAbility implements Ability
 			return false;
 		if(casterM instanceof Deity)
 			return false;
-		final MOB folM=casterM.amUltimatelyFollowing();
-		if((folM!=null)&&(folM.isPlayer()))
+		final MOB folM=casterM.getGroupLeader();
+		if(folM.isPlayer())
 			return true;
 		/* too much
 		for(final Enumeration<MOB> m=R.inhabitants();m.hasMoreElements();)
@@ -2157,6 +2159,14 @@ public class StdAbility implements Ability
 			return tickTime;
 		else
 			return (int)Math.round(CMath.mul(CMath.div(-tickAdjustmentFromStandard, 100.0) , (double)tickTime));
+	}
+
+	public int getTickdownTime(final MOB mob, final Physical target, final int asLevel, final int tickAdjustmentFromStandard)
+	{
+		if(abstractQuality()==Ability.QUALITY_MALICIOUS)
+			return getMaliciousTickdownTime(mob, target, tickAdjustmentFromStandard, asLevel);
+		else
+			return getBeneficialTickdownTime(mob, target, tickAdjustmentFromStandard, asLevel);
 	}
 
 	public Ability beneficialAffect(final MOB mob, final Physical target, final int asLevel, int tickAdjustmentFromStandard)
@@ -2687,6 +2697,13 @@ public class StdAbility implements Ability
 	{
 		if(mob == null)
 			return true;
+		return getInappropriateFaction(mob) == null;
+	}
+
+	protected Faction getInappropriateFaction(final MOB mob)
+	{
+		if(mob == null)
+			return null;
 		for(final Enumeration<String> e=mob.factions();e.hasMoreElements();)
 		{
 			final String factionID=e.nextElement();
@@ -2694,9 +2711,9 @@ public class StdAbility implements Ability
 			if((F!=null)
 			&&(F.hasUsage(this))
 			&&(!F.canUse(mob,this)))
-				return false;
+				return F;
 		}
-		return true;
+		return null;
 	}
 
 	@Override

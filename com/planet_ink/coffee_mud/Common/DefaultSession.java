@@ -681,11 +681,13 @@ public class DefaultSession implements Session
 				return false;
 			if(CMSecurity.isDebugging(DbgFlag.TELNET))
 				Log.debugOut("GMCP Sent: "+(lowerEventName+" "+json));
+			final ByteArrayOutputStream bout=new ByteArrayOutputStream();
+			bout.write(TELNETBYTES_GMCP_HEAD);
+			bout.write((lowerEventName+" "+json).getBytes());
+			bout.write(TELNETBYTES_END_SB);
 			synchronized(gmcpSupports)
 			{
-				rawBytesOut(rawout,TELNETBYTES_GMCP_HEAD);
-				rawBytesOut(rawout,(lowerEventName+" "+json).getBytes());
-				rawBytesOut(rawout,TELNETBYTES_END_SB);
+				rawBytesOut(rawout,bout.toByteArray());
 			}
 			return true;
 		}
@@ -1787,7 +1789,7 @@ public class DefaultSession implements Session
 			break;
 		case TELNET_GMCP:
 			{
-				final byte[] resp=CMLib.protocol().processGmcp(this, new String(suboptionData), this.gmcpSupports);
+				final byte[] resp=CMLib.protocol().processGmcp(this, new String(suboptionData), gmcpSupports, msdpReportables);
 				if(CMSecurity.isDebugging(CMSecurity.DbgFlag.TELNET))
 				{
 					Log.debugOut("For suboption "+Session.TELNET_DESCS[optionCode]+", got "+dataSize+" bytes, sent "+((resp==null)?0:resp.length));
@@ -2430,7 +2432,7 @@ public class DefaultSession implements Session
 	{
 		if((inStr.length()>3)
 		&&(inStr.charAt(0)=='#')
-		&&(inStr.substring(0, 2).equals("#$")))
+		&&(inStr.charAt(1)=='$'))
 		{
 			if(inStr.substring(0, 3).equals("#$#"))
 			{
@@ -2852,7 +2854,7 @@ public class DefaultSession implements Session
 		}
 		if(getClientTelnetMode(TELNET_GMCP))
 		{
-			final byte[] gmcpPingBuf=CMLib.protocol().pingGmcp(this, gmcpPings, gmcpSupports);
+			final byte[] gmcpPingBuf=CMLib.protocol().pingGmcp(this, gmcpPings, gmcpSupports, msdpReportables);
 			if(gmcpPingBuf!=null)
 			{
 				try
@@ -3655,7 +3657,7 @@ public class DefaultSession implements Session
 	private static enum SESS_STAT_CODES {PREVCMD,ISAFK,AFKMESSAGE,ADDRESS,IDLETIME,
 										 LASTMSG,LASTNPCFIGHT,LASTPKFIGHT,TERMTYPE,
 										 TOTALMILLIS,TOTALTICKS,WRAP,LASTLOOPTIME,
-										 ROOMLOOK,TWRAP}
+										 ROOMLOOK,TWRAP,PPING,CPING}
 
 	@Override
 	public int getSaveStatIndex()
@@ -3717,6 +3719,8 @@ public class DefaultSession implements Session
 		case LASTLOOPTIME:
 			return CMLib.time().date2String(getInputLoopTime());
 		case ROOMLOOK:
+		case PPING:
+		case CPING:
 			break; // do nothing
 		case TWRAP:
 			return ""+this.terminalWidth;
@@ -3779,10 +3783,21 @@ public class DefaultSession implements Session
 		case LASTLOOPTIME:
 			lastLoopTop = CMLib.time().string2Millis(val);
 			break;
+		case CPING:
+			if(getClientTelnetMode(TELNET_GMCP))
+			{
+				this.gmcpPings.clear();
+				this.doProtocolPings();
+			}
+			break;
+		case PPING:
+			this.gmcpPings.remove("system.nextMedReport");
+			this.doProtocolPings();
+			break;
 		case ROOMLOOK:
 			if(getClientTelnetMode(TELNET_GMCP))
 			{
-				final byte[] gmcpPingBuf=CMLib.protocol().invokeRoomChangeGmcp(this, gmcpPings, gmcpSupports);
+				final byte[] gmcpPingBuf=CMLib.protocol().invokeRoomChangeGmcp(this, gmcpPings, gmcpSupports, msdpReportables);
 				if(gmcpPingBuf!=null)
 				{
 					try

@@ -134,6 +134,7 @@ public class StdMOB implements MOB
 	protected CMUniqSortSVec<Behavior>		behaviors			= new CMUniqSortSVec<Behavior>(1);
 	protected CMUniqNameSortSVec<Tattoo>	tattoos				= new CMUniqNameSortSVec<Tattoo>(1);
 	protected volatile PairList<MOB, Short>	followers			= null;
+	protected volatile int					followOrder			= -1;
 	protected LinkedList<QMCommand>			commandQue			= new LinkedList<QMCommand>();
 	protected SVector<ScriptingEngine>		scripts				= new SVector<ScriptingEngine>(1);
 	protected volatile List<Ability>		racialAffects		= null;
@@ -275,7 +276,7 @@ public class StdMOB implements MOB
 	{
 		if(basePhyStats().level() <= 1)
 			return 0;
-		final int neededLowest = CMLib.leveler().getLevelExperience(this, basePhyStats().level() - 2);
+		final int neededLowest = CMLib.leveler().getLevelExperience(this, basePhyStats().level() - 1);
 		return neededLowest;
 	}
 
@@ -650,6 +651,7 @@ public class StdMOB implements MOB
 		tattoos = new CMUniqNameSortSVec<Tattoo>();
 		expertises = new STreeMap<String, Integer>();
 		followers = null;
+		followOrder = -1;
 		commandQue = new LinkedList<QMCommand>();
 		scripts = new SVector<ScriptingEngine>();
 		racialAffects = null;
@@ -1141,6 +1143,7 @@ public class StdMOB implements MOB
 		cachedImageName = null;
 		inventory.setSize(0);
 		followers = null;
+		followOrder = -1;
 		abilitys.setSize(0);
 		triggerer.setObsolete();
 		abilityUseCache.clear();
@@ -1681,26 +1684,27 @@ public class StdMOB implements MOB
 	@Override
 	public DeadBody killMeDead(final boolean createBody)
 	{
-		final Room deathRoom;
+		final Room corpseRoom;
+		Room deathRoom = location();
 		if(isMonster())
-			deathRoom = location();
+			corpseRoom = deathRoom;
 		else
-			deathRoom = CMLib.login().getDefaultBodyRoom(this);
-		if(location() != null)
-			location().delInhabitant(this);
+			corpseRoom = CMLib.login().getDefaultBodyRoom(this);
+		if(deathRoom != null)
+			deathRoom.delInhabitant(this);
 		amDead = true;
 		DeadBody bodyI = null;
 		if(createBody)
 		{
-			bodyI = charStats().getMyRace().getCorpseContainer(this, deathRoom);
+			bodyI = charStats().getMyRace().getCorpseContainer(this, corpseRoom);
 			if((bodyI != null)
 			&& (playerStats() != null))
 			{
 				bodyI.setSavable(false); // if the player is saving it, rooms are NOT.
 				playerStats().getExtItems().addItem(bodyI);
 			}
-			if(deathRoom != null)
-				deathRoom.show(this, bodyI, CMMsg.MASK_ALWAYS|CMMsg.MSG_BODYDROP, null);
+			if(corpseRoom != null)
+				corpseRoom.show(this, bodyI, CMMsg.MASK_ALWAYS|CMMsg.MSG_BODYDROP, null);
 		}
 		makePeace(false);
 		setRiding(null);
@@ -1730,9 +1734,12 @@ public class StdMOB implements MOB
 			setFollowing(null);
 		}
 		if((!isMonster()) && (soulMate() == null))
-			bringToLife(CMLib.login().getDefaultDeathRoom(this), true);
-		if(deathRoom != null)
-			deathRoom.recoverRoomStats();
+		{
+			deathRoom = CMLib.login().getDefaultDeathRoom(this);
+			bringToLife(deathRoom, true);
+		}
+		if(corpseRoom != null)
+			corpseRoom.recoverRoomStats();
 		return bodyI;
 	}
 
@@ -2517,7 +2524,7 @@ public class StdMOB implements MOB
 								tell(L("You are serving '@x1'!", getLiegeID()));
 							return false;
 						}
-						CMLib.combat().establishRange(this, (MOB) msg.target(), msg.tool());
+						CMLib.combat().establishRange(this, (MOB) msg.target(), msg.tool()); // why this here?
 					}
 				}
 
@@ -2547,7 +2554,7 @@ public class StdMOB implements MOB
 						|| flags.isSleeping(srcM))
 					&& (!flags.isAliveAwakeMobile(this, false)))
 						return false;
-					
+
 					if(msg.sourceMajor(CMMsg.MASK_SOUND))
 					{
 						if((msg.tool() == null)
@@ -3443,23 +3450,22 @@ public class StdMOB implements MOB
 			&& (!msg.sourceMajor(CMMsg.MASK_INTERMSG))
 			&& (msg.target() instanceof MOB)
 			&& (getVictim() != msg.target())
+			&&(msg.source()!=msg.target())
 			&& ((!msg.sourceMajor(CMMsg.MASK_ALWAYS))
 				|| (!(msg.tool() instanceof DiseaseAffect))))
 			{
-				CMLib.combat().establishRange(this, (MOB) msg.target(), msg.tool());
+				CMLib.combat().establishRange(this, (MOB)msg.target(), msg.tool());
 				if(!((MOB)msg.target()).isPlayer())
 					CMLib.awards().giveAutoProperties((MOB)msg.target(), false);
 				if(!isPlayer())
 					CMLib.awards().giveAutoProperties(this, false);
 				if((msg.tool() instanceof Weapon)
-				|| (msg.sourceMinor() == CMMsg.TYP_WEAPONATTACK))
+				|| (msg.sourceMinor() == CMMsg.TYP_WEAPONATTACK)
+				|| (!flagLib.isAliveAwakeMobileUnbound((MOB)msg.target(), true)))
 				{
-					setVictim((MOB) msg.target());
+					setVictim((MOB)msg.target());
 					combatStarted();
 				}
-				else
-				if(!flagLib.isAliveAwakeMobileUnbound((MOB) msg.target(), true))
-					setVictim((MOB) msg.target());
 			}
 
 			if(msg.sourceMajor(CMMsg.MASK_CHANNEL))
@@ -3583,6 +3589,8 @@ public class StdMOB implements MOB
 				case CMMsg.TYP_FOLLOW:
 					if(msg.target() instanceof MOB)
 					{
+						if(!isPlayer())
+							CMLib.awards().giveAutoProperties(me, false);
 						setFollowing((MOB) msg.target());
 						tell(srcM, msg.target(), msg.tool(), msg.sourceMessage());
 					}
@@ -3677,6 +3685,12 @@ public class StdMOB implements MOB
 				&& (!asleep) && (canhearsrc))
 					CMLib.commands().handleIntroductions(srcM, this, msg.targetMessage());
 				CMLib.commands().handleBeingSpokenTo(srcM, this, msg.targetMessage());
+				break;
+			}
+			case CMMsg.TYP_ORDER:
+			{
+				if(msg.targetMessage()!=null)
+					enqueCommand(CMParms.parse(CMStrings.getSayFromMessage(msg.targetMessage())),MUDCmdProcessor.METAFLAG_ORDER,0);
 				break;
 			}
 			default:
@@ -3777,9 +3791,13 @@ public class StdMOB implements MOB
 				{
 					tell(srcM, msg.target(), msg.tool(), msg.othersMessage());
 					if((mySession != null)
-					&& (msg.othersMinor() == CMMsg.TYP_ENTER)
 					&& (mySession.getClientTelnetMode(Session.TELNET_GMCP)))
-						mySession.sendGMCPEvent("room.enter", "\"" + MiniJSON.toJSONString(srcM.Name()) + "\"");
+					{
+						if (msg.othersMinor() == CMMsg.TYP_ENTER)
+							mySession.sendGMCPEvent("room.enter", "\"" + MiniJSON.toJSONString(srcM.Name()) + "\"");
+						if (msg.othersMinor() == CMMsg.TYP_LEAVE)
+							mySession.sendGMCPEvent("room.leave", "\"" + MiniJSON.toJSONString(srcM.Name()) + "\"");
+					}
 				}
 				if((!isMonster())
 				&& (riding != null)
@@ -3930,6 +3948,8 @@ public class StdMOB implements MOB
 			if(isPlayer())
 				playerStats().bumpLevelCombatStat(PlayerCombatStat.COMBATS_TOTAL, basePhyStats().level(), 1);
 			this.peaceTime = 0;
+			if(mySession!=null)
+				mySession.setStat("PPING", "true");
 		}
 	}
 
@@ -4574,6 +4594,11 @@ public class StdMOB implements MOB
 	{
 		if(follower != null)
 		{
+			if(follower == this)
+			{
+				followOrder = order;
+				return;
+			}
 			if(followers == null)
 				followers = new SPairList<MOB, Short>();
 			else
@@ -4621,6 +4646,8 @@ public class StdMOB implements MOB
 	@Override
 	public int fetchFollowerOrder(final MOB thisOne)
 	{
+		if(thisOne == this)
+			return followOrder;
 		for(final Enumeration<Pair<MOB, Short>> f = followers(); f.hasMoreElements();)
 		{
 			final Pair<MOB, Short> F = f.nextElement();
@@ -4706,11 +4733,13 @@ public class StdMOB implements MOB
 	}
 
 	@Override
-	public MOB amUltimatelyFollowing()
+	public MOB getGroupLeader()
 	{
 		Followable<MOB> following = amFollowing;
 		if(following == null)
-			return null;
+			return this;
+		if(following.amFollowing() == null)
+			return (MOB)following;
 		final HashSet<Followable<MOB>> seen = new HashSet<Followable<MOB>>();
 		while((following != null)
 		&& (following.amFollowing() != null)
@@ -5158,12 +5187,12 @@ public class StdMOB implements MOB
 		{
 			for(int a = 0; a < affects.size(); a++)
 			{
+				final Ability A;
+				try { A=affects.get(a);}catch(final IndexOutOfBoundsException e){ break;  /** this happens **/ }
 				try
 				{
-					applier.apply(affects.get(a));
+					applier.apply(A);
 				}
-				catch(final IndexOutOfBoundsException e)
-				{ break;  /** this happens **/ }
 				catch(final Exception e)
 				{
 					Log.errOut(e);
@@ -5353,12 +5382,12 @@ public class StdMOB implements MOB
 		{
 			for(int a = 0; a < behaviors.size(); a++)
 			{
+				final Behavior B;
+				try{ B = behaviors.get(a);}catch(final IndexOutOfBoundsException e){ break;  /** this happens **/ }
 				try
 				{
-					applier.apply(behaviors.get(a));
+					applier.apply(B);
 				}
-				catch(final IndexOutOfBoundsException e)
-				{ break;  /** this happens **/ }
 				catch(final Exception e)
 				{
 					Log.errOut(e);

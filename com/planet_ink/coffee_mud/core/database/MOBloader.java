@@ -14,7 +14,7 @@ import com.planet_ink.coffee_mud.Behaviors.interfaces.*;
 import com.planet_ink.coffee_mud.CharClasses.interfaces.*;
 import com.planet_ink.coffee_mud.Commands.interfaces.*;
 import com.planet_ink.coffee_mud.Common.interfaces.*;
-import com.planet_ink.coffee_mud.Common.interfaces.AccountStats.PrideStat;
+import com.planet_ink.coffee_mud.Common.interfaces.PrideStats.PrideStat;
 import com.planet_ink.coffee_mud.Common.interfaces.Clan.MemberRecord;
 import com.planet_ink.coffee_mud.Common.interfaces.PlayerAccount.AccountFlag;
 import com.planet_ink.coffee_mud.Common.interfaces.PlayerStats.PlayerFlag;
@@ -2458,7 +2458,7 @@ public class MOBloader
 							{
 								final MOB rideM=(MOB)leadR;
 								if((rideM.isMonster())
-								&&((rideM.amUltimatelyFollowing()==null)||(!rideM.amUltimatelyFollowing().isPlayer()))
+								&&((rideM.amFollowing()==null)||(!rideM.getGroupLeader().isPlayer()))
 								&&(rideM.location()==R))
 									fakeR.addInhabitant(rideM); // will not affect location
 								leadR=rideM.riding();

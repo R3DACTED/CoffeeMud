@@ -107,6 +107,14 @@ public class Chant_SuppressFortune extends Chant
 		if(target==null)
 			return false;
 
+		if((!auto)
+		&&(!mob.getGroupMembers(new XTreeSet<MOB>()).contains(target))
+		&&(!mob.mayIFight(target))
+		&&(mob!=target))
+		{
+			mob.tell(mob,target,null,L("<T-HE-SHE> <T-IS-ARE> not a valid target."));
+			return false;
+		}
 		if(!super.invoke(mob,commands,givenTarget,auto,asLevel))
 			return false;
 		final boolean success=proficiencyCheck(mob,0,auto);
@@ -140,7 +148,10 @@ public class Chant_SuppressFortune extends Chant
 			}
 		}
 		else
+		if((mob!=target)&&(!mob.getGroupMembers(new XTreeSet<MOB>()).contains(target))&&(mob.mayIFight(target)))
 			return maliciousFizzle(mob,target,L("<S-NAME> chant(s) to <T-NAMESELF>, but the magic fades."));
+		else
+			return beneficialWordsFizzle(mob,target,L("<S-NAME> chant(s) to <T-NAMESELF>, but the magic fades."));
 		// return whether it worked
 		return success;
 	}

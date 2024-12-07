@@ -3051,7 +3051,8 @@ public class CharCreation extends StdLibrary implements CharCreationLibrary
 			for(int i=0;i<bonusPoints;i++)
 			{
 				final int randStat=CMLib.dice().roll(1, CharStats.CODES.BASECODES().length, -1);
-				mob.baseCharStats().setStat(CharStats.CODES.BASECODES()[randStat], mob.baseCharStats().getStat(CharStats.CODES.BASECODES()[randStat])+1);
+				mob.baseCharStats().setStat(CharStats.CODES.BASECODES()[randStat],
+						mob.baseCharStats().getStat(CharStats.CODES.BASECODES()[randStat])+1);
 			}
 			mob.recoverCharStats();
 			loginObj.state=LoginState.CHARCR_STATDONE;
@@ -3118,15 +3119,23 @@ public class CharCreation extends StdLibrary implements CharCreationLibrary
 			final int max=CMProps.getIntVar(CMProps.Int.BASEMAXSTAT);
 			final StringBuffer statstr=new StringBuffer(L("Your current stats are: \n\r"));
 			final CharStats CT=mob.baseCharStats();
+			final Race R = mob.baseCharStats().getMyRace();
+			final CharStats RT=(CharStats)CT.copyOf();
+			R.affectCharStats(mob, RT);
 			int total=0;
+			int maxTotal=0;
 			for(final int i : CharStats.CODES.BASECODES())
 			{
-				total += CT.getStat(i);
+				final int statVal=RT.getStat(i);
+				final int statDiff=RT.getStat(i)-CT.getStat(i);
+				total += statVal;
+				maxTotal += (max+RT.getStat(CharStats.CODES.toMAXBASE(i)));
+				final String valDiff = (statDiff == 0)?"":(((statDiff>0)?("+"+statDiff):(""+statDiff))+" from "+R.name());
 				statstr.append("^H"+CMStrings.padRight(CMStrings.capitalizeAndLower(CharStats.CODES.DESC(i)),15)
-							  +"^N: ^w"+CMStrings.padRight(Integer.toString(CT.getStat(i)),2)
-							  +"^N/^w"+(max+CT.getStat(CharStats.CODES.toMAXBASE(i)))+"^N\n\r");
+							  +"^N: ^w"+CMStrings.padRight(Integer.toString(statVal),2)
+							  +"^N/^w"+(max+RT.getStat(CharStats.CODES.toMAXBASE(i)))+"^N "+valDiff+"\n\r");
 			}
-			statstr.append("^w"+CMStrings.padRight(L("STATS TOTAL"),15)+"^N: ^w"+total+"^N/^w"+(CMProps.getIntVar(CMProps.Int.BASEMAXSTAT)*6)+"^.^N");
+			statstr.append("^w"+CMStrings.padRight(L("STATS TOTAL"),15)+"^N: ^w"+total+"^N/^w"+maxTotal+"^.^N");
 			session.println(statstr.toString());
 			if((qualifyingClassListV.size()==0)&&(!CMSecurity.isDisabled(CMSecurity.DisFlag.CLASSES)))
 				qualifyingClassListV=classQualifies(mob,loginObj.theme);

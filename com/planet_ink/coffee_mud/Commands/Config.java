@@ -87,6 +87,7 @@ public class Config extends StdCommand
 					}
 					sorted.add("LINEWRAP");
 					sorted.add("PAGEBREAK");
+					sorted.add("AUTOTELLNOTIFY");
 					Collections.sort(sorted);
 					final Object rawHelp=CMLib.help().getHelpFile().get("CONFIG_HELP_OPTIONS");
 					if((!(rawHelp instanceof String))||(((String)rawHelp).length()==0))
@@ -258,6 +259,9 @@ public class Config extends StdCommand
 					if("DISABLED".startsWith(newWrap.toUpperCase())&&(newWrap.length()>0))
 						newVal=0;
 					else
+					if("OFF".startsWith(newWrap.toUpperCase())&&(newWrap.length()>0))
+						newVal=0;
+					else
 					{
 						mob.tell(L("'@x1' is not a valid linewrap setting. Enter a number larger than 10 or 'disable'.",newWrap));
 						return false;
@@ -282,6 +286,25 @@ public class Config extends StdCommand
 					}
 					mob.playerStats().setPageBreak(newVal);
 					postStr=L("Configuration option change: PAGEBREAK");
+				}
+				else
+				if((name.equalsIgnoreCase("AUTOTELLNOTIFY"))
+				&&(mob.playerStats()!=null)
+				&&(mob.playerStats().getAccount()!=null))
+				{
+					final String parm=(commands.size()>2)?CMParms.combine(commands,2):"";
+					final PlayerAccount acct = mob.playerStats().getAccount();
+					if((!acct.isSet(PlayerAccount.AccountFlag.AUTOTELLNOTIFY) && (parm.length()==0))||(parm.equalsIgnoreCase("ON")))
+					{
+						acct.setFlag(PlayerAccount.AccountFlag.AUTOTELLNOTIFY, true);
+						postStr=L("Configuration flag toggled: AUTOTELLNOTIFY");
+					}
+					else
+					if((acct.isSet(PlayerAccount.AccountFlag.AUTOTELLNOTIFY) && (parm.length()==0))||(parm.equalsIgnoreCase("OFF")))
+					{
+						acct.setFlag(PlayerAccount.AccountFlag.AUTOTELLNOTIFY, false);
+						postStr=L("Configuration flag toggled: AUTOTELLNOTIFY");
+					}
 				}
 				else
 					postStr=L("Unknown configuration flag '@x1'.",name);
@@ -477,6 +500,24 @@ public class Config extends StdCommand
 			else
 				msg.append(CMStrings.padRight(m.toString(), 40));
 		}
+		if(CMProps.isUsingAccountSystem()
+		&&(mob.playerStats()!=null)
+		&&(mob.playerStats().getAccount()!=null))
+		{
+			final StringBuilder m=new StringBuilder("");
+			m.append("^W"+CMStrings.padRight("AUTOTELLNOTIFY",maxAttribLen)+"^N: ");
+			final boolean set=mob.playerStats().getAccount().isSet(PlayerAccount.AccountFlag.AUTOTELLNOTIFY);
+			m.append(set?L("^gON"):L("^rOFF"));
+			if(++col==2)
+			{
+				msg.append(m.toString());
+				msg.append("\n\r");
+				col=0;
+			}
+			else
+				msg.append(CMStrings.padRight(m.toString(), 40));
+		}
+
 		msg.append("^N");
 		msg.append(L("\n\rUse CONFIG HELP (X) for more information.\n\r"));
 		if(!quieter)
