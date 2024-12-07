@@ -1,2 +1,5 @@
 *.log
 *.class
+coffeemud.ini
+mudUNIX.sh
+InstallUNIX.sh
