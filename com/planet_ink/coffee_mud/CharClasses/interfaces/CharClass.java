@@ -713,8 +713,8 @@ public interface CharClass extends Tickable, StatsAffecting, MsgListener, CMObje
 	public static final int WEAPONS_MERLIKE=12;
 	/** constant returned by allowedWeaponLevel() to designate staffs only. @see com.planet_ink.coffee_mud.CharClass.StdCharClass#allowedWeaponLevel() */
 	public static final int WEAPONS_STAFFONLY=13;
-	/** constant returned by allowedWeaponLevel() to designate gypsy weapons only. @see com.planet_ink.coffee_mud.CharClass.StdCharClass#allowedWeaponLevel() */
-	public static final int WEAPONS_GYPSY=14;
+	/** constant returned by allowedWeaponLevel() to designate Drifter weapons only. @see com.planet_ink.coffee_mud.CharClass.StdCharClass#allowedWeaponLevel() */
+	public static final int WEAPONS_DRIFTER=14;
 	/** constant returned by allowedWeaponLevel() to designate reliquist weapons only. @see com.planet_ink.coffee_mud.CharClass.StdCharClass#allowedWeaponLevel() */
 	public static final int WEAPONS_RELIQUIST=15;
 	/** constant set of integer arrays defining the Weapon.CLASS_* constants for the CharClass.WEAPONS_* constants, ordered by CharClass.WEAPONS_* values. */
