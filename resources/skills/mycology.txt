@@ -13,7 +13,7 @@ enoki	50	1
 fieldshroom	50	1	
 puffball	5	2	
 greencrackling	5	1	
-gypsyshroom	5	1	
+Driftershroom	5	1	
 hedgehogshroom	5	1	
 honeyfungus	5	5	
 pennybun	5	3	

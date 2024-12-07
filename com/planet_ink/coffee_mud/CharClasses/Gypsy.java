@@ -320,7 +320,7 @@ public class Gypsy extends Thief
 							{
 								return true;
 							}
-							msg.source().tell(L("A Gypsy may not own real estate."));
+							msg.source().tell(L("A Drifter may not own real estate."));
 							return false;
 						}
 					}

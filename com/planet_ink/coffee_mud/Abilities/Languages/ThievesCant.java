@@ -905,7 +905,7 @@ public class ThievesCant extends StdLanguage
 		exactWords.put("FOOL","gudgeon");
 		exactWords.put("GALLOWS","three legged stool");
 		exactWords.put("GANG","birds of a feather");
-		exactWords.put("GYPSIES","cattle");
+		exactWords.put("Drifters","cattle");
 		exactWords.put("GLOVES","farms");
 		exactWords.put("GLOVE","farm");
 		exactWords.put("GOOD","rum");
